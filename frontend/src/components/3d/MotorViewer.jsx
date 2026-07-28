@@ -3,7 +3,7 @@ import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Environment, ContactShadows } from '@react-three/drei';
 import { RotateCw, RefreshCw, AlertCircle, Eye, Activity, Box, Layers, Flame, AlertTriangle, Sparkles } from 'lucide-react';
 import * as THREE from 'three';
-import RefMachineModel from './RefMachineModel';
+import MachineModelSelector from './machines/MachineModelSelector';
 import Loader from './Loader';
 
 class ErrorBoundary extends React.Component {
@@ -98,7 +98,9 @@ export default function MotorViewer({
   setIsDigitalTwinView,
   isSimulatingFailure,
   setIsSimulatingFailure,
-  activeMachineName = "Siemens Unit 1 Industrial Machine"
+  activeMachineName = "Siemens Unit 1 Industrial Machine",
+  selectedMachineId = "SIEM-UNIT1-2026",
+  components = []
 }) {
   const controlsRef = useRef(null);
   const [autoRotate, setAutoRotate] = useState(false);
@@ -268,12 +270,14 @@ export default function MotorViewer({
               {/* IF DIGITAL TWIN VIEW IS OFF: Render 1 Single Physical Machine Centered */}
               {!isDigitalTwinView && (
                 <group position={[0, 0, 0]}>
-                  <RefMachineModel 
+                  <MachineModelSelector 
+                    machineId={selectedMachineId}
                     isHologram={false}
                     viewMode={viewMode}
                     selectedComponent={selectedComponent}
                     setSelectedComponent={setSelectedComponent}
                     isSimulatingFailure={isSimulatingFailure}
+                    components={components}
                   />
                 </group>
               )}
@@ -284,23 +288,27 @@ export default function MotorViewer({
                   
                   {/* LEFT MODEL: Physical Real Machine */}
                   <group position={[-3.2, 0, 0]}>
-                    <RefMachineModel 
+                    <MachineModelSelector 
+                      machineId={selectedMachineId}
                       isHologram={false}
                       viewMode={viewMode}
                       selectedComponent={selectedComponent}
                       setSelectedComponent={setSelectedComponent}
                       isSimulatingFailure={isSimulatingFailure}
+                      components={components}
                     />
                   </group>
 
                   {/* RIGHT MODEL: Identical Synchronized Blue Holographic Digital Twin */}
                   <group position={[3.2, 0, 0]}>
-                    <RefMachineModel 
+                    <MachineModelSelector 
+                      machineId={selectedMachineId}
                       isHologram={true}
                       viewMode={viewMode}
                       selectedComponent={selectedComponent}
                       setSelectedComponent={setSelectedComponent}
                       isSimulatingFailure={isSimulatingFailure}
+                      components={components}
                     />
                   </group>
 

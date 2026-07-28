@@ -3,11 +3,13 @@ import { Loader2, Cpu, Box } from 'lucide-react';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import DashboardPage from './components/pages/DashboardPage';
+import DigitalTwinLibraryPage from './components/pages/DigitalTwinLibraryPage';
 import AIAssistantPage from './components/pages/AIAssistantPage';
 import DocumentsPage from './components/pages/DocumentsPage';
 import AnalyticsPage from './components/pages/AnalyticsPage';
 import AlertsPage from './components/pages/AlertsPage';
 import LoginPage from './components/auth/LoginPage';
+import { allIndustrialMachines } from './data/mockData';
 
 // LAZY LOAD Digital Twin Page & 3D R3F Graphics Library (Loaded ONLY when Digital Twin tab is clicked)
 const DigitalTwinPage = lazy(() => import('./components/pages/DigitalTwinPage'));
@@ -43,6 +45,35 @@ export default function App() {
     role: 'Reliability Engineer',
   });
   const [activeTab, setActiveTab] = useState('dashboard'); // Default dashboard, 3D Digital Twin lazy-loads when clicked!
+
+  // Global State for Selected Digital Twin Machine & Loading Experience
+  const [selectedMachine, setSelectedMachine] = useState(allIndustrialMachines[0]);
+  const [isMachineLoading, setIsMachineLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState('');
+
+  // Handler for Opening Digital Twin from Library with Sequential Loading Transition
+  const handleOpenDigitalTwin = (targetMachine) => {
+    setSelectedMachine(targetMachine);
+    setActiveTab('digital-twin');
+    setIsMachineLoading(true);
+
+    setLoadingStage('Loading Digital Twin...');
+    setTimeout(() => {
+      setLoadingStage('Connecting to IoT Sensors...');
+      setTimeout(() => {
+        setLoadingStage('Synchronizing AI Model...');
+        setTimeout(() => {
+          setLoadingStage('Loading 3D Assets...');
+          setTimeout(() => {
+            setLoadingStage('Machine Ready');
+            setTimeout(() => {
+              setIsMachineLoading(false);
+            }, 300);
+          }, 300);
+        }, 300);
+      }, 300);
+    }, 300);
+  };
 
   const handleLoginSuccess = (user) => {
     setCurrentUser({
@@ -85,10 +116,22 @@ export default function App() {
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto max-w-[1600px] mx-auto w-full">
           {activeTab === 'dashboard' && <DashboardPage setActiveTab={setActiveTab} />}
           
+          {/* New Enterprise Digital Twin Library Portal */}
+          {activeTab === 'digital-twin-library' && (
+            <DigitalTwinLibraryPage onOpenDigitalTwin={handleOpenDigitalTwin} />
+          )}
+
           {/* Lazy-Loaded 3D Digital Twin Tab */}
           {activeTab === 'digital-twin' && (
             <Suspense fallback={<DigitalTwinSkeleton />}>
-              <DigitalTwinPage setActiveTab={setActiveTab} />
+              <DigitalTwinPage 
+                setActiveTab={setActiveTab} 
+                selectedMachine={selectedMachine}
+                onSelectMachine={setSelectedMachine}
+                isMachineLoading={isMachineLoading}
+                loadingStage={loadingStage}
+                onSwitchMachine={handleOpenDigitalTwin}
+              />
             </Suspense>
           )}
 

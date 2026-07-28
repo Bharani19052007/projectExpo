@@ -827,7 +827,7 @@ export const digitalTwinAsset = {
   installationDate: "2022-04-15",
   operatingHours: 14280, // hrs
   status: "WARNING", // RUNNING, WARNING, CRITICAL, OFFLINE
-  
+
   // Real-time sensor metrics
   sensors: {
     temperature: { value: 64.8, unit: "°C", baseline: 55.0, maxLimit: 95.0, status: "WARNING" },

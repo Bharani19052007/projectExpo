@@ -33,13 +33,28 @@ import {
   CartesianGrid 
 } from 'recharts';
 import { allIndustrialMachines, refMachineComponentsData } from '../../data/mockData';
+import { getMachineConfig } from '../../machines/index';
 import MotorViewer from '../3d/MotorViewer';
 
-export default function DigitalTwinPage({ setActiveTab }) {
-  // Machine Library Dropdown (8 machines supported)
-  const [selectedMachine, setSelectedMachine] = useState(allIndustrialMachines[0]);
-  const [isMachineLoading, setIsMachineLoading] = useState(false);
-  const [loadingStage, setLoadingStage] = useState('');
+export default function DigitalTwinPage({ 
+  setActiveTab, 
+  selectedMachine: propSelectedMachine, 
+  onSelectMachine,
+  isMachineLoading: propIsLoading,
+  loadingStage: propLoadingStage,
+  onSwitchMachine
+}) {
+  // Machine Library Dropdown & State (Fallback to local state if props omitted)
+  const [localMachine, setLocalMachine] = useState(allIndustrialMachines[0]);
+  const [localIsLoading, setLocalIsLoading] = useState(false);
+  const [localLoadingStage, setLocalLoadingStage] = useState('');
+
+  const selectedMachine = propSelectedMachine || localMachine;
+  const isMachineLoading = propIsLoading !== undefined ? propIsLoading : localIsLoading;
+  const loadingStage = propLoadingStage !== undefined ? propLoadingStage : localLoadingStage;
+
+  // Retrieve dedicated per-machine configuration from machines registry
+  const activeMachineConfig = getMachineConfig(selectedMachine.id);
 
   // 3D Overlays & Controls
   const [viewMode, setViewMode] = useState('CAD'); // CAD, THERMAL, EXPLODED, VIBRATION
@@ -50,36 +65,45 @@ export default function DigitalTwinPage({ setActiveTab }) {
   const [treeSearch, setTreeSearch] = useState('');
   const [activeRightTab, setActiveRightTab] = useState('TELEMETRY'); // TELEMETRY, HISTORY, AI
 
-  // Supported Digital Twin Library Machine List (8 items)
-  const libraryMachines = allIndustrialMachines.slice(0, 8);
+  // Supported Digital Twin Library Machine List (All 10 assets)
+  const libraryMachines = allIndustrialMachines;
 
   // Handle Switching Machine from Digital Twin Library Dropdown
   const handleSwitchMachine = (machineId) => {
     const nextMachine = allIndustrialMachines.find((m) => m.id === machineId);
     if (!nextMachine || nextMachine.id === selectedMachine.id) return;
 
+    if (onSwitchMachine) {
+      onSwitchMachine(nextMachine);
+      return;
+    }
+
     setSelectedComponent(null);
     setIsSimulatingFailure(false);
-    setIsMachineLoading(true);
+    setLocalIsLoading(true);
 
     // Sequential Loading Transition
-    setLoadingStage('Loading Digital Twin...');
+    setLocalLoadingStage('Loading Digital Twin...');
     setTimeout(() => {
-      setLoadingStage('Synchronizing Sensors...');
+      setLocalLoadingStage('Connecting to IoT Sensors...');
       setTimeout(() => {
-        setLoadingStage('Loading AI Model...');
+        setLocalLoadingStage('Synchronizing AI Model...');
         setTimeout(() => {
-          setLoadingStage('Machine Ready');
-          setSelectedMachine(nextMachine);
+          setLocalLoadingStage('Loading 3D Assets...');
           setTimeout(() => {
-            setIsMachineLoading(false);
-          }, 250);
+            setLocalLoadingStage('Machine Ready');
+            setLocalMachine(nextMachine);
+            if (onSelectMachine) onSelectMachine(nextMachine);
+            setTimeout(() => {
+              setLocalIsLoading(false);
+            }, 250);
+          }, 300);
         }, 300);
       }, 300);
     }, 300);
   };
 
-  const activeComponents = selectedMachine.components || refMachineComponentsData;
+  const activeComponents = activeMachineConfig.components || selectedMachine.components || refMachineComponentsData;
 
   const filteredTree = activeComponents.filter((c) =>
     c.name.toLowerCase().includes(treeSearch.toLowerCase()) ||
@@ -99,7 +123,7 @@ export default function DigitalTwinPage({ setActiveTab }) {
   };
 
   // Active display component logic
-  const baseComp = selectedComponent || activeComponents.find((c) => c.id.includes('front') || c.id.includes('bearing')) || activeComponents[0];
+  const baseComp = selectedComponent || activeComponents[0];
   
   // Dynamic sensor values depending on Failure Simulation mode
   const activeMetrics = isSimulatingFailure && baseComp.failureState
@@ -303,6 +327,8 @@ export default function DigitalTwinPage({ setActiveTab }) {
             isSimulatingFailure={isSimulatingFailure}
             setIsSimulatingFailure={setIsSimulatingFailure}
             activeMachineName={selectedMachine.name}
+            selectedMachineId={selectedMachine.id}
+            components={activeComponents}
           />
         </div>
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { 
   LayoutDashboard, 
+  Library,
   Box, 
   Bot, 
   FileText, 
@@ -21,6 +22,14 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       subtitle: 'Factory Overview',
       icon: LayoutDashboard,
       badge: null,
+    },
+    {
+      id: 'digital-twin-library',
+      label: 'Digital Twin Library',
+      subtitle: 'Enterprise Asset Portal',
+      icon: Library,
+      badge: 'NEW',
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     },
     {
       id: 'digital-twin',
