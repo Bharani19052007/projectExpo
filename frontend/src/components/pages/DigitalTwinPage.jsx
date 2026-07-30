@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Activity, 
@@ -59,6 +59,11 @@ export default function DigitalTwinPage({
   // 3D Overlays & Controls
   const [viewMode, setViewMode] = useState('CAD'); // CAD, THERMAL, EXPLODED, VIBRATION
   const [selectedComponent, setSelectedComponent] = useState(null); // Default null: Clean full machine focus
+
+  // Auto-reset component selection when machine changes
+  useEffect(() => {
+    setSelectedComponent(null);
+  }, [selectedMachine.id]);
   const [isInspectOpen, setIsInspectOpen] = useState(false);
   const [isDigitalTwinView, setIsDigitalTwinView] = useState(true); // Default true for Real Machine (LEFT) + Holographic Twin (RIGHT)
   const [isSimulatingFailure, setIsSimulatingFailure] = useState(false); // Default OFF: Normal telemetry

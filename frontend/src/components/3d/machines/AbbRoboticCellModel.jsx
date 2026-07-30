@@ -11,6 +11,7 @@ export default function AbbRoboticCellModel({
   isSimulatingFailure = false,
   components = [],
 }) {
+  const groupRef = useRef(null);
   const robotGroupRef = useRef(null);
   const upperArmRef = useRef(null);
 
@@ -22,6 +23,90 @@ export default function AbbRoboticCellModel({
     if (upperArmRef.current) {
       upperArmRef.current.rotation.z = Math.cos(time * 1.4) * 0.15;
     }
+
+    if (!groupRef.current) return;
+
+    groupRef.current.children.forEach((child) => {
+      const compId = child.userData?.compId;
+      if (!compId) return;
+
+      const comp = components.find((c) => c.id === compId || compId.startsWith(c.id));
+      if (!comp) return;
+
+      const isSelected = selectedComponent && (selectedComponent.id === compId || compId.startsWith(selectedComponent.id));
+      const targetPos = viewMode === 'EXPLODED' && comp.explodedOffset ? comp.explodedOffset : comp.position3d;
+
+      child.position.x = THREE.MathUtils.lerp(child.position.x, targetPos[0], delta * 5);
+      child.position.y = THREE.MathUtils.lerp(child.position.y, targetPos[1], delta * 5);
+      child.position.z = THREE.MathUtils.lerp(child.position.z, targetPos[2], delta * 5);
+
+      child.traverse((mesh) => {
+        if (mesh.isMesh && mesh.material) {
+          mesh.material.transparent = true;
+
+          if (isHologram) {
+            mesh.material.wireframe = true;
+            if (isSimulatingFailure && isSelected) {
+              mesh.material.color.set('#ff2222');
+              mesh.material.emissive.set('#ef4444');
+              mesh.material.emissiveIntensity = 1.0;
+              mesh.material.opacity = 0.95;
+            } else if (selectedComponent) {
+              if (isSelected) {
+                mesh.material.color.set('#00ffff');
+                mesh.material.emissive.set('#00ffff');
+                mesh.material.emissiveIntensity = 1.2;
+                mesh.material.opacity = 0.95;
+              } else {
+                mesh.material.color.set('#00bfff');
+                mesh.material.emissive.set('#005588');
+                mesh.material.emissiveIntensity = 0.2;
+                mesh.material.opacity = 0.2;
+              }
+            } else {
+              mesh.material.color.set('#00f0ff');
+              mesh.material.emissive.set('#0088cc');
+              mesh.material.emissiveIntensity = 0.4 + Math.sin(time * 2 + child.position.x) * 0.15;
+              mesh.material.opacity = 0.55;
+            }
+          } else {
+            mesh.material.wireframe = false;
+            if (selectedComponent) {
+              if (isSelected) {
+                mesh.material.opacity = 1.0;
+                if (isSimulatingFailure) {
+                  mesh.material.color.set('#ef4444');
+                  mesh.material.emissive.set('#dc2626');
+                  mesh.material.emissiveIntensity = 0.8;
+                } else if (viewMode === 'THERMAL') {
+                  mesh.material.color.set('#f97316');
+                  mesh.material.emissive.set('#ea580c');
+                  mesh.material.emissiveIntensity = 0.6;
+                } else {
+                  mesh.material.color.set('#0284c7');
+                  mesh.material.emissive.set('#0369a1');
+                  mesh.material.emissiveIntensity = 0.4;
+                }
+              } else {
+                mesh.material.opacity = 0.25;
+                if (mesh.userData?.defaultColor) {
+                  mesh.material.color.set(mesh.userData.defaultColor);
+                  mesh.material.emissive.set('#000000');
+                  mesh.material.emissiveIntensity = 0;
+                }
+              }
+            } else {
+              mesh.material.opacity = 1.0;
+              if (mesh.userData?.defaultColor) {
+                mesh.material.color.set(mesh.userData.defaultColor);
+                mesh.material.emissive.set('#000000');
+                mesh.material.emissiveIntensity = 0;
+              }
+            }
+          }
+        }
+      });
+    });
   });
 
   return (
@@ -34,7 +119,7 @@ export default function AbbRoboticCellModel({
         </mesh>
       </group>
 
-      <group>
+      <group ref={groupRef}>
         {/* 1. Base Swivel Spindle */}
         <group userData={{ compId: 'base-spindle' }} position={[0, -0.4, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'base-spindle')); }}>
           <mesh userData={{ defaultColor: '#334155' }}>

@@ -84,7 +84,7 @@ export function HolographicTwinEngine({
           if (!comp.position3d) return null;
           const [posx, posy, posz] = comp.position3d;
 
-          const isSelected = selectedComponent && (selectedComponent.id === comp.id || comp.id.startsWith(selectedComponent.id));
+          const isSelected = !!(selectedComponent && comp && comp.id && selectedComponent.id && (selectedComponent.id === comp.id || String(comp.id).startsWith(String(selectedComponent.id))));
           const isFailed = isSimulatingFailure && (isSelected || idx === 0);
 
           const nodeColor = isFailed ? '#ef4444' : isSelected ? '#00ffff' : '#00bfff';
