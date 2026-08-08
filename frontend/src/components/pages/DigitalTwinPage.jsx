@@ -49,7 +49,7 @@ export default function DigitalTwinPage({
   const [localIsLoading, setLocalIsLoading] = useState(false);
   const [localLoadingStage, setLocalLoadingStage] = useState('');
 
-  const selectedMachine = propSelectedMachine || localMachine;
+  const selectedMachine = propSelectedMachine || localMachine || allIndustrialMachines[0];
   const isMachineLoading = propIsLoading !== undefined ? propIsLoading : localIsLoading;
   const loadingStage = propLoadingStage !== undefined ? propLoadingStage : localLoadingStage;
 
@@ -108,12 +108,12 @@ export default function DigitalTwinPage({
     }, 300);
   };
 
-  const activeComponents = activeMachineConfig.components || selectedMachine.components || refMachineComponentsData;
+  const activeComponents = activeMachineConfig?.components || selectedMachine?.components || refMachineComponentsData;
 
-  const filteredTree = activeComponents.filter((c) =>
-    c.name.toLowerCase().includes(treeSearch.toLowerCase()) ||
-    c.partNumber.toLowerCase().includes(treeSearch.toLowerCase()) ||
-    c.subsystem.toLowerCase().includes(treeSearch.toLowerCase())
+  const filteredTree = (activeComponents || []).filter((c) =>
+    (c?.name || '').toLowerCase().includes(treeSearch.toLowerCase()) ||
+    (c?.partNumber || '').toLowerCase().includes(treeSearch.toLowerCase()) ||
+    (c?.subsystem || '').toLowerCase().includes(treeSearch.toLowerCase())
   );
 
   const handleSelectComponent = (comp) => {
@@ -128,12 +128,12 @@ export default function DigitalTwinPage({
   };
 
   // Active display component logic
-  const baseComp = selectedComponent || activeComponents[0];
+  const baseComp = selectedComponent || (activeComponents && activeComponents[0]) || refMachineComponentsData[0];
   
   // Dynamic sensor values depending on Failure Simulation mode
-  const activeMetrics = isSimulatingFailure && baseComp.failureState
+  const activeMetrics = isSimulatingFailure && baseComp?.failureState
     ? { ...baseComp, ...baseComp.failureState }
-    : baseComp;
+    : baseComp || refMachineComponentsData[0];
 
   return (
     <div className="space-y-6 pb-12 relative">

@@ -42,13 +42,15 @@ export default function RefMachineModel({
 
       // 1. Position Interpolation (Exploded View vs CAD View)
       const targetPos =
-        viewMode === 'EXPLODED' && comp.explodedOffset
+        viewMode === 'EXPLODED' && Array.isArray(comp.explodedOffset)
           ? comp.explodedOffset
           : comp.position3d;
 
-      child.position.x = THREE.MathUtils.lerp(child.position.x, targetPos[0], delta * 5);
-      child.position.y = THREE.MathUtils.lerp(child.position.y, targetPos[1], delta * 5);
-      child.position.z = THREE.MathUtils.lerp(child.position.z, targetPos[2], delta * 5);
+      if (targetPos && Array.isArray(targetPos) && targetPos.length >= 3) {
+        child.position.x = THREE.MathUtils.lerp(child.position.x, targetPos[0], delta * 5);
+        child.position.y = THREE.MathUtils.lerp(child.position.y, targetPos[1], delta * 5);
+        child.position.z = THREE.MathUtils.lerp(child.position.z, targetPos[2], delta * 5);
+      }
 
       // 2. Material Logic for Real Machine vs Holographic Digital Twin
       child.traverse((mesh) => {

@@ -54,10 +54,13 @@ function SmoothCameraController({ selectedComponent, isDigitalTwinView, controls
   useFrame((_, delta) => {
     if (!controlsRef.current) return;
 
-    if (selectedComponent && selectedComponent.position3d) {
+    if (selectedComponent && Array.isArray(selectedComponent.position3d) && selectedComponent.position3d.length >= 3) {
       const [tx, ty, tz] = selectedComponent.position3d;
       const targetX = isDigitalTwinView ? tx - 1.6 : tx;
-      const [cx, cy, cz] = selectedComponent.cameraOffset || [tx + 2.2, ty + 1.2, tz + 2.8];
+      const cameraOffset = (Array.isArray(selectedComponent.cameraOffset) && selectedComponent.cameraOffset.length >= 3)
+        ? selectedComponent.cameraOffset
+        : [tx + 2.2, ty + 1.2, tz + 2.8];
+      const [cx, cy, cz] = cameraOffset;
       const cameraX = isDigitalTwinView ? cx - 1.6 : cx;
 
       controlsRef.current.target.x = THREE.MathUtils.lerp(controlsRef.current.target.x, targetX, delta * 5);
