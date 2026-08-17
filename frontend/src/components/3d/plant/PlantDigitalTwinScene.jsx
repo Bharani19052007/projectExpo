@@ -1,208 +1,150 @@
-import React, { useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import React, { useRef, useEffect, useState, Suspense } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 
-// Sector Components
-import RefinerySector from './RefinerySector';
-import StorageDepot from './StorageDepot';
-import CoolingAndBoilerUtilities from './CoolingAndBoilerUtilities';
-import RoboticAssemblyCell from './RoboticAssemblyCell';
-import PipelineNetwork from './PipelineNetwork';
-import LogisticsAndFleet from './LogisticsAndFleet';
-import SubstationAndPowerGrid from './SubstationAndPowerGrid';
+import IndustrialCampusEnvironment from './IndustrialCampusEnvironment';
+import CampusMachineDigitalTwins from './CampusMachineDigitalTwins';
+import HologramVibrationLayer from './HologramVibrationLayer';
 import Asset3DMarker from './Asset3DMarker';
 
-// Sweeping Light Blue Holographic Laser Scan Plane
-function HolographicScanPlane() {
-  const meshRef = useRef();
+// Procedural Plant Sectors
+import RefinerySector from './RefinerySector';
+import RoboticAssemblyCell from './RoboticAssemblyCell';
+import CoolingAndBoilerUtilities from './CoolingAndBoilerUtilities';
+import PipelineNetwork from './PipelineNetwork';
+import SubstationAndPowerGrid from './SubstationAndPowerGrid';
+import StorageDepot from './StorageDepot';
+import LogisticsAndFleet from './LogisticsAndFleet';
 
-  useFrame(({ clock }) => {
-    if (meshRef.current) {
-      const t = clock.getElapsedTime() * 0.35;
-      meshRef.current.position.z = Math.sin(t) * 45;
-      meshRef.current.material.opacity = 0.2 + Math.sin(t * 2) * 0.1;
-    }
-  });
+import { campusBuildings } from '../../../data/plantAssetsData';
 
-  return (
-    <mesh ref={meshRef} position={[0, 3.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <planeGeometry args={[115, 2.5]} />
-      <meshBasicMaterial
-        color="#00b8ff"
-        transparent
-        opacity={0.25}
-        side={THREE.DoubleSide}
-        blending={THREE.AdditiveBlending}
-      />
-    </mesh>
-  );
-}
-
-// Floating Holographic Data Particles
-function HolographicParticleField({ count = 200 }) {
-  const pointsRef = useRef();
-
-  const [positions] = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 110;
-      pos[i * 3 + 1] = Math.random() * 24 + 1.0;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 110;
-    }
-    return [pos];
-  }, [count]);
-
-  useFrame(({ clock }) => {
-    if (pointsRef.current) {
-      const posAttr = pointsRef.current.geometry.attributes.position;
-      for (let i = 0; i < count; i++) {
-        let y = posAttr.getY(i) + 0.025;
-        if (y > 26) y = 1.0;
-        posAttr.setY(i, y);
-      }
-      posAttr.needsUpdate = true;
-    }
-  });
-
-  return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.6}
-        color="#00b8ff"
-        transparent
-        opacity={0.55}
-        blending={THREE.AdditiveBlending}
-      />
-    </points>
-  );
-}
-
-// Clean Daylight Engineering Ground & Foundations
-function CleanDaylightIndustrialGround() {
-  return (
-    <group position={[0, -0.05, 0]}>
-      {/* Primary Light Concrete Floor */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[160, 160]} />
-        <meshStandardMaterial color="#edf4fc" roughness={0.75} metalness={0.1} />
-      </mesh>
-
-      {/* Soft Blue Engineering Grid */}
-      <gridHelper
-        args={[150, 60, '#60a5fa', '#bad5f8']}
-        position={[0, 0.01, 0]}
-      />
-
-      {/* Concrete Foundation Pads */}
-      <mesh position={[-18, 0.02, -16]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[36, 36]} />
-        <meshStandardMaterial color="#dfeaf8" roughness={0.8} />
-      </mesh>
-      <mesh position={[-28, 0.02, 18]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[32, 28]} />
-        <meshStandardMaterial color="#e2edf9" roughness={0.8} />
-      </mesh>
-      <mesh position={[20, 0.02, -18]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[32, 32]} />
-        <meshStandardMaterial color="#dfeaf8" roughness={0.8} />
-      </mesh>
-      <mesh position={[18, 0.02, 16]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[30, 26]} />
-        <meshStandardMaterial color="#e2edf9" roughness={0.8} />
-      </mesh>
-      <mesh position={[34, 0.02, 24]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[22, 20]} />
-        <meshStandardMaterial color="#dfeaf8" roughness={0.8} />
-      </mesh>
-
-      {/* Internal Concrete Roadways */}
-      <mesh position={[0, 0.03, 30]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[130, 8]} />
-        <meshStandardMaterial color="#d8e5f5" roughness={0.7} />
-      </mesh>
-      <mesh position={[0, 0.03, -32]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[130, 8]} />
-        <meshStandardMaterial color="#d8e5f5" roughness={0.7} />
-      </mesh>
-      {/* Light Blue Road Center Striping */}
-      <mesh position={[0, 0.035, 30]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[120, 0.25]} />
-        <meshBasicMaterial color="#3b82f6" opacity={0.6} transparent />
-      </mesh>
-    </group>
-  );
-}
-
-// Camera Presets Map
-const CAMERA_POSITIONS = {
-  overview: { pos: [48, 36, 50], target: [0, 2, 0] },
-  refinery: { pos: [-16, 18, -12], target: [-18, 6, -18] },
-  storage: { pos: [-26, 16, 26], target: [-28, 4, 18] },
-  assembly: { pos: [18, 14, 16], target: [14, 3, 12] },
-  utilities: { pos: [24, 18, -22], target: [22, 6, -18] },
-  substation: { pos: [36, 18, 28], target: [32, 5, 24] },
-  logistics: { pos: [-8, 14, 34], target: [-6, 2, 26] },
-  top_down: { pos: [0, 65, 0], target: [0, 0, 0] },
+// Camera Target presets for 12 Campus Buildings & 5-Level Hierarchy
+const cameraHierarchyPresets = {
+  overview: { position: [0, 24, 32], target: [0, 1.5, 0] },
+  production_hall: { position: [-16, 12, 18], target: [-16, 1.5, -2] },
+  assembly_line: { position: [18, 10, 22], target: [18, 1.5, 6] },
+  cnc_workshop: { position: [-24, 8, 8], target: [-24, 1.5, -2] },
+  process_plant: { position: [42, 12, 8], target: [42, 1.5, -8] },
+  utilities: { position: [18, 10, -6], target: [18, 1.5, -22] },
+  compressor_house: { position: [22, 8, -10], target: [22, 1.5, -22] },
+  power_room: { position: [44, 14, 28], target: [44, 3, 18] },
+  warehouse: { position: [-46, 18, 32], target: [-46, 5, 18] },
+  quality_lab: { position: [-16, 12, -14], target: [-16, 3, -26] },
+  maintenance_shop: { position: [-42, 12, 2], target: [-42, 3, -10] },
+  control_hq: { position: [-42, 15, -18], target: [-42, 4, -30] },
+  logistics: { position: [18, 14, 44], target: [18, 3, 32] },
 };
 
-// Smooth Camera Controller
-function CameraController({ cameraPreset, selectedAsset, isDroneTour, isAutoRotate }) {
+// Event-Driven Hierarchical Camera Controller
+function CameraController({
+  selectedAsset,
+  selectedComponent,
+  selectedBuildingId,
+  enteredBuildingId,
+  cameraPreset = 'overview',
+  isDroneTour = false,
+  fitTrigger = 0,
+}) {
+  const { camera } = useThree();
   const controlsRef = useRef();
 
-  useFrame(({ camera, clock }) => {
-    if (isDroneTour) {
-      const t = clock.getElapsedTime() * 0.12;
-      const radius = 54;
-      const targetX = Math.sin(t) * radius;
-      const targetZ = Math.cos(t) * radius;
-      const targetY = 30 + Math.sin(t * 0.8) * 6;
+  const isTransitioningRef = useRef(false);
+  const transitionStartRef = useRef(0);
+  const transitionDuration = 1.1; // seconds
 
-      camera.position.lerp(new THREE.Vector3(targetX, targetY, targetZ), 0.04);
-      if (controlsRef.current) {
-        controlsRef.current.target.lerp(new THREE.Vector3(0, 3, 0), 0.04);
-        controlsRef.current.update();
-      }
-      return;
-    }
+  const startPosRef = useRef(new THREE.Vector3());
+  const startTargetRef = useRef(new THREE.Vector3());
+  const endPosRef = useRef(new THREE.Vector3());
+  const endTargetRef = useRef(new THREE.Vector3());
 
-    if (selectedAsset && selectedAsset.position) {
+  // Initiate camera transition when target changes
+  useEffect(() => {
+    if (!controlsRef.current) return;
+
+    startPosRef.current.copy(camera.position);
+    startTargetRef.current.copy(controlsRef.current.target);
+
+    // 1. Component Focus (Level 5)
+    if (selectedComponent && selectedAsset?.position) {
       const [ax, ay, az] = selectedAsset.position;
-      const targetPos = new THREE.Vector3(ax + 12, ay + 9, az + 13);
-      const targetLook = new THREE.Vector3(ax, ay + 2, az);
-
-      camera.position.lerp(targetPos, 0.05);
-      if (controlsRef.current) {
-        controlsRef.current.target.lerp(targetLook, 0.05);
-        controlsRef.current.update();
+      endTargetRef.current.set(ax, ay + 0.5, az);
+      endPosRef.current.set(ax + 2.4, ay + 1.6, az + 2.5);
+    }
+    // 2. Machine Focus (Level 4)
+    else if (selectedAsset && selectedAsset.position) {
+      const [ax, ay, az] = selectedAsset.position;
+      endTargetRef.current.set(ax, ay + 1.0, az);
+      endPosRef.current.set(ax + 4.5, ay + 3.2, az + 5.0);
+    }
+    // 3. Entered Building Focus (Level 3 Interior)
+    else if (enteredBuildingId) {
+      const bld = campusBuildings.find((b) => b.id === enteredBuildingId);
+      if (bld) {
+        const [bx, , bz] = bld.position;
+        endTargetRef.current.set(bx, 1.5, bz);
+        endPosRef.current.set(bx + 6, 12, bz + 16);
       }
+    }
+    // 4. Building Selected Focus (Level 2)
+    else if (selectedBuildingId) {
+      const bld = campusBuildings.find((b) => b.id === selectedBuildingId);
+      if (bld) {
+        endPosRef.current.set(...bld.cameraView);
+        endTargetRef.current.set(...bld.cameraFocus);
+      }
+    }
+    // 5. Sector / Overview Presets (Level 1)
+    else {
+      const targetPreset = cameraHierarchyPresets[cameraPreset] || cameraHierarchyPresets.overview;
+      endPosRef.current.set(...targetPreset.position);
+      endTargetRef.current.set(...targetPreset.target);
+    }
+
+    transitionStartRef.current = performance.now();
+    isTransitioningRef.current = true;
+  }, [selectedAsset, selectedComponent, selectedBuildingId, enteredBuildingId, cameraPreset, fitTrigger]);
+
+  // Smooth interpolation frame loop
+  useFrame((state) => {
+    // 360 Drone Tour Orbit
+    if (isDroneTour && controlsRef.current && !isTransitioningRef.current) {
+      const t = state.clock.getElapsedTime() * 0.12;
+      camera.position.x = Math.sin(t) * 65;
+      camera.position.z = Math.cos(t) * 65;
+      camera.position.y = 36 + Math.sin(t * 2) * 4;
+      controlsRef.current.target.set(0, 2, 0);
+      controlsRef.current.update();
       return;
     }
 
-    const preset = CAMERA_POSITIONS[cameraPreset] || CAMERA_POSITIONS.overview;
-    const targetPos = new THREE.Vector3(...preset.pos);
-    const targetLook = new THREE.Vector3(...preset.target);
+    if (!isTransitioningRef.current || !controlsRef.current) return;
 
-    camera.position.lerp(targetPos, 0.05);
-    if (controlsRef.current) {
-      controlsRef.current.target.lerp(targetLook, 0.05);
-      controlsRef.current.update();
+    const elapsed = (performance.now() - transitionStartRef.current) / 1000;
+    const progress = Math.min(elapsed / transitionDuration, 1.0);
+
+    // Cubic ease-out smooth step
+    const ease = 1 - Math.pow(1 - progress, 3);
+
+    camera.position.lerpVectors(startPosRef.current, endPosRef.current, ease);
+    controlsRef.current.target.lerpVectors(startTargetRef.current, endTargetRef.current, ease);
+    controlsRef.current.update();
+
+    if (progress >= 1.0) {
+      isTransitioningRef.current = false;
     }
   });
 
   return (
     <OrbitControls
       ref={controlsRef}
+      makeDefault
       enableDamping
       dampingFactor={0.06}
-      maxPolarAngle={Math.PI / 2 - 0.05}
-      minDistance={8}
-      maxDistance={125}
-      autoRotate={isAutoRotate}
-      autoRotateSpeed={0.6}
+      maxPolarAngle={Math.PI / 2 - 0.04}
+      minDistance={2}
+      maxDistance={220}
+      target={[0, 1.5, 0]}
     />
   );
 }
@@ -210,115 +152,286 @@ function CameraController({ cameraPreset, selectedAsset, isDroneTour, isAutoRota
 export default function PlantDigitalTwinScene({
   assets = [],
   selectedAsset,
+  selectedComponent,
   onSelectAsset,
+  onSelectComponent,
   hoveredAsset,
   onHoverAsset,
-  viewMode = 'CAD',
+  selectedBuildingId,
+  onSelectBuilding,
+  viewMode = 'OVERVIEW',
   cameraPreset = 'overview',
   showMarkers = true,
   isDroneTour = false,
-  isAutoRotate = false,
+  isHologramVibration = false,
+  vibrationMetric = 'velocity',
+  amplitudeScale = 1.0,
+  fitTrigger = 0,
 }) {
+  const [enteredBuildingId, setEnteredBuildingId] = useState(null);
+
+  const activeBuildingObj = campusBuildings.find(
+    (b) => b.id === (selectedBuildingId || enteredBuildingId || selectedAsset?.buildingId)
+  );
+
   return (
-    <div className="w-full h-full relative cursor-grab active:cursor-grabbing">
+    <div className="w-full h-full relative select-none">
+      {/* ── Breadcrumb Hierarchy Trail Navigation Bar ── */}
+      <div className="absolute top-16 left-6 z-30 pointer-events-auto flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-cyan-500/30 text-xs font-semibold text-white shadow-xl">
+        <button
+          onClick={() => {
+            onSelectBuilding?.(null);
+            onSelectAsset?.(null);
+            onSelectComponent?.(null);
+            setEnteredBuildingId(null);
+          }}
+          className="hover:text-cyan-400 transition-colors uppercase tracking-wider text-slate-300 font-bold"
+        >
+          CAMPUS
+        </button>
+
+        {(selectedBuildingId || enteredBuildingId || selectedAsset) && (
+          <>
+            <span className="text-cyan-500/60">/</span>
+            <button
+              onClick={() => {
+                onSelectAsset?.(null);
+                onSelectComponent?.(null);
+              }}
+              className="hover:text-cyan-400 transition-colors uppercase tracking-wider text-cyan-200"
+            >
+              {activeBuildingObj?.name || 'MANUFACTURING HALL'}
+            </button>
+          </>
+        )}
+
+        {selectedAsset && (
+          <>
+            <span className="text-cyan-500/60">/</span>
+            <button
+              onClick={() => onSelectComponent?.(null)}
+              className="hover:text-cyan-400 transition-colors uppercase tracking-wider text-cyan-400 font-extrabold"
+            >
+              {selectedAsset.id}
+            </button>
+          </>
+        )}
+
+        {selectedComponent && (
+          <>
+            <span className="text-cyan-500/60">/</span>
+            <span className="text-amber-400 uppercase tracking-wider font-extrabold">
+              {selectedComponent.name || selectedComponent.id}
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* ── Interactive Enter Building / Roof Reveal Action Button ── */}
+      {selectedBuildingId && !enteredBuildingId && (
+        <div className="absolute top-28 left-6 z-30 pointer-events-auto">
+          <button
+            onClick={() => setEnteredBuildingId(selectedBuildingId)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-extrabold text-xs shadow-lg shadow-cyan-500/30 hover:bg-cyan-400 transition-all transform hover:scale-105 active:scale-95"
+          >
+            <span>ENTER BUILDING (ROOF REVEAL)</span>
+          </button>
+        </div>
+      )}
+      {enteredBuildingId && (
+        <div className="absolute top-28 left-6 z-30 pointer-events-auto">
+          <button
+            onClick={() => setEnteredBuildingId(null)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 text-cyan-400 border border-cyan-500/40 font-bold text-xs shadow-lg hover:bg-slate-700 transition-all"
+          >
+            <span>EXIT INTERIOR (ROOF REVEAL ACTIVE)</span>
+          </button>
+        </div>
+      )}
+
       <Canvas
-        shadows
+        camera={{ position: [0, 24, 32], fov: 42, near: 0.5, far: 650 }}
+        shadows={!isHologramVibration}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.05,
+          toneMappingExposure: isHologramVibration ? 1.2 : 1.18,
         }}
       >
-        <PerspectiveCamera makeDefault position={[48, 36, 50]} fov={45} />
+        {isHologramVibration ? (
+          /* Dark Hologram Cybernetic Lighting & Space */
+          <>
+            <color attach="background" args={['#020617']} />
+            <fog attach="fog" args={['#020617', 140, 480]} />
+            <ambientLight color="#0f172a" intensity={0.8} />
+            <directionalLight position={[50, 80, 40]} color="#38bdf8" intensity={1.8} />
+            <pointLight position={[0, 20, 0]} color="#00c2ff" intensity={2.5} distance={120} />
+          </>
+        ) : (
+          /* ── Realistic Sunny Daytime Industrial Sky & Atmosphere ─── */
+          <>
+            <color attach="background" args={['#87B8D4']} />
+            <fog attach="fog" args={['#C9D8E8', 220, 500]} />
 
-        {/* Crisp Daylight Sky & Ambient Atmospheric Fog */}
-        <color attach="background" args={['#e4f1fd']} />
-        <fog attach="fog" args={['#e4f1fd', 45, 140]} />
-
-        {/* Ambient & Sun Directional Lighting */}
-        <ambientLight intensity={1.4} color="#f0f7ff" />
-        <directionalLight
-          position={[45, 60, 35]}
-          intensity={2.2}
-          color="#ffffff"
-          castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-          shadow-camera-far={140}
-          shadow-camera-left={-60}
-          shadow-camera-right={60}
-          shadow-camera-top={60}
-          shadow-camera-bottom={-60}
-          shadow-bias={-0.0001}
-        />
-        {/* Soft Blue Daylight Fill & Rim Lights */}
-        <directionalLight position={[-30, 40, -30]} intensity={0.9} color="#dbeafe" />
-        <pointLight position={[-20, 20, -20]} intensity={1.2} color="#00b8ff" distance={60} />
-        <pointLight position={[20, 20, 20]} intensity={1.0} color="#60a5fa" distance={60} />
-
-        {/* Sweeping Blue Holographic Scan & Particle Field */}
-        <HolographicScanPlane />
-        <HolographicParticleField count={180} />
-
-        {/* 3D Smart Factory Sectors */}
-        <CleanDaylightIndustrialGround />
-        <RefinerySector
-          viewMode={viewMode}
-          selectedAsset={selectedAsset}
-          onSelectAsset={onSelectAsset}
-        />
-        <StorageDepot
-          viewMode={viewMode}
-          selectedAsset={selectedAsset}
-          onSelectAsset={onSelectAsset}
-        />
-        <CoolingAndBoilerUtilities
-          viewMode={viewMode}
-          selectedAsset={selectedAsset}
-          onSelectAsset={onSelectAsset}
-        />
-        <RoboticAssemblyCell
-          viewMode={viewMode}
-          selectedAsset={selectedAsset}
-          onSelectAsset={onSelectAsset}
-        />
-        <PipelineNetwork
-          viewMode={viewMode}
-          selectedAsset={selectedAsset}
-          onSelectAsset={onSelectAsset}
-        />
-        <LogisticsAndFleet
-          viewMode={viewMode}
-          selectedAsset={selectedAsset}
-          onSelectAsset={onSelectAsset}
-        />
-        <SubstationAndPowerGrid
-          viewMode={viewMode}
-          selectedAsset={selectedAsset}
-          onSelectAsset={onSelectAsset}
-        />
-
-        {/* 3D Floating Spatial Markers */}
-        {showMarkers &&
-          assets.map((asset) => (
-            <Asset3DMarker
-              key={asset.id}
-              asset={asset}
-              isSelected={selectedAsset?.id === asset.id}
-              isHovered={hoveredAsset?.id === asset.id}
-              onClick={onSelectAsset}
-              onHover={onHoverAsset}
+            <Sky
+              distance={450000}
+              sunPosition={[70, 55, 45]}
+              inclination={0.52}
+              azimuth={0.22}
+              mieCoefficient={0.003}
+              mieDirectionalG={0.82}
+              rayleigh={0.45}
+              turbidity={2.2}
             />
-          ))}
 
-        {/* Smooth Camera Controller */}
+            <ambientLight color="#7aaabb" intensity={0.55} />
+            <hemisphereLight skyColor="#87CEEB" groundColor="#7B8E6E" intensity={0.72} />
+
+            <directionalLight
+              position={[70, 90, 55]}
+              color="#FFF8E7"
+              intensity={2.5}
+              castShadow
+              shadow-mapSize-width={2048}
+              shadow-mapSize-height={2048}
+              shadow-camera-near={10}
+              shadow-camera-far={320}
+              shadow-camera-left={-100}
+              shadow-camera-right={100}
+              shadow-camera-top={100}
+              shadow-camera-bottom={-100}
+              shadow-bias={-0.0002}
+            />
+
+            <directionalLight position={[-40, 30, -30]} color="#C8DCF0" intensity={0.4} />
+          </>
+        )}
+
+        {/* 5-Level Camera Navigation Controller */}
         <CameraController
-          cameraPreset={cameraPreset}
           selectedAsset={selectedAsset}
+          selectedComponent={selectedComponent}
+          selectedBuildingId={selectedBuildingId}
+          enteredBuildingId={enteredBuildingId}
+          cameraPreset={cameraPreset}
           isDroneTour={isDroneTour}
-          isAutoRotate={isAutoRotate}
+          fitTrigger={fitTrigger}
         />
+
+        <Suspense fallback={null}>
+          {/* 1. Master Industrial Campus Environment (Buildings, Roof Cutaways, Roads, Vehicles) */}
+          <IndustrialCampusEnvironment
+            selectedBuildingId={selectedBuildingId}
+            onSelectBuilding={onSelectBuilding}
+            viewMode={viewMode}
+            isCutawayActive={!!selectedBuildingId || !!enteredBuildingId || viewMode === 'FLOOR 1' || isHologramVibration}
+            enteredBuildingId={enteredBuildingId}
+          />
+
+          {/* 2. Vivid Physical Machines with Cyan Digital Twin Overlays */}
+          <CampusMachineDigitalTwins
+            assets={assets}
+            selectedAssetId={selectedAsset?.id}
+            selectedComponent={selectedComponent}
+            onSelectComponent={onSelectComponent}
+            hoveredAssetId={hoveredAsset?.id}
+            onSelectAsset={onSelectAsset}
+            onHoverAsset={onHoverAsset}
+            viewMode={viewMode}
+            isHologramVibration={isHologramVibration}
+          />
+
+          {/* 3. Integrated Procedural Sectors across Campus Zones */}
+          <group position={[42, 0, -8]}>
+            <RefinerySector
+              selectedAsset={selectedAsset}
+              onSelectAsset={onSelectAsset}
+              hoveredAsset={hoveredAsset}
+              onHoverAsset={onHoverAsset}
+              viewMode={isHologramVibration ? 'HOLOGRAM' : 'CAD'}
+            />
+          </group>
+
+          <group position={[18, 0, 6]}>
+            <RoboticAssemblyCell
+              selectedAsset={selectedAsset}
+              onSelectAsset={onSelectAsset}
+              hoveredAsset={hoveredAsset}
+              onHoverAsset={onHoverAsset}
+              viewMode={isHologramVibration ? 'HOLOGRAM' : 'CAD'}
+            />
+          </group>
+
+          <group position={[18, 0, -22]}>
+            <CoolingAndBoilerUtilities
+              selectedAsset={selectedAsset}
+              onSelectAsset={onSelectAsset}
+              hoveredAsset={hoveredAsset}
+              onHoverAsset={onHoverAsset}
+              viewMode={isHologramVibration ? 'HOLOGRAM' : 'CAD'}
+            />
+          </group>
+
+          <group position={[44, 0, 18]}>
+            <SubstationAndPowerGrid
+              selectedAsset={selectedAsset}
+              onSelectAsset={onSelectAsset}
+              hoveredAsset={hoveredAsset}
+              onHoverAsset={onHoverAsset}
+              viewMode={isHologramVibration ? 'HOLOGRAM' : 'CAD'}
+            />
+          </group>
+
+          <group position={[-46, 0, 18]}>
+            <StorageDepot
+              selectedAsset={selectedAsset}
+              onSelectAsset={onSelectAsset}
+              hoveredAsset={hoveredAsset}
+              onHoverAsset={onHoverAsset}
+              viewMode={isHologramVibration ? 'HOLOGRAM' : 'CAD'}
+            />
+          </group>
+
+          <group position={[18, 0, 32]}>
+            <LogisticsAndFleet
+              selectedAsset={selectedAsset}
+              onSelectAsset={onSelectAsset}
+              hoveredAsset={hoveredAsset}
+              onHoverAsset={onHoverAsset}
+              viewMode={isHologramVibration ? 'HOLOGRAM' : 'CAD'}
+            />
+          </group>
+
+          <PipelineNetwork
+            selectedAsset={selectedAsset}
+            onSelectAsset={onSelectAsset}
+            hoveredAsset={hoveredAsset}
+            onHoverAsset={onHoverAsset}
+            viewMode={isHologramVibration ? 'HOLOGRAM' : 'CAD'}
+          />
+
+          {/* 4. DEDICATED 3D HOLOGRAM VIBRATION LAYER */}
+          {isHologramVibration && (
+            <HologramVibrationLayer
+              assets={assets}
+              activeMetric={vibrationMetric}
+              amplitudeScale={amplitudeScale}
+            />
+          )}
+
+          {/* 5. In-Scene Digital Twin Spatial Badges */}
+          {showMarkers &&
+            assets.map((asset) => (
+              <Asset3DMarker
+                key={asset.id}
+                asset={asset}
+                isSelected={selectedAsset?.id === asset.id}
+                isHovered={hoveredAsset?.id === asset.id}
+                onClick={onSelectAsset}
+              />
+            ))}
+        </Suspense>
       </Canvas>
     </div>
   );

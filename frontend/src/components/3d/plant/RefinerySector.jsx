@@ -73,10 +73,11 @@ export default function RefinerySector({
       );
     }
 
-    // Default Holographic CAD / Photorealistic
-    const baseColor = isSelected ? '#00e5ff' : isHovered ? '#4fc3f7' : defaultColor;
-    const emissive = isSelected ? '#00e5ff' : isHovered ? '#0284c7' : '#041d48';
-    const emissiveIntensity = isSelected ? 0.9 : isHovered ? 0.5 : 0.18;
+    // Realistic CAD / Photorealistic mode — NO blue glow on non-selected equipment
+    // Selected = cyan DT highlight, Hovered = lighter tint, Default = true material color
+    const baseColor = isSelected ? '#00e5ff' : isHovered ? '#b0cfe8' : defaultColor;
+    const emissive = isSelected ? '#00e5ff' : isHovered ? '#4fc3f7' : '#000000';
+    const emissiveIntensity = isSelected ? 0.75 : isHovered ? 0.25 : 0.0;
 
     return (
       <meshStandardMaterial
@@ -109,34 +110,34 @@ export default function RefinerySector({
           onHoverAsset(null);
         }}
       >
-        {/* Foundation Plinth */}
+        {/* Foundation Plinth - light concrete */}
         <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
           <cylinderGeometry args={[2.8, 3.2, 0.8, 32]} />
-          {getMaterial('REACT-CAT-01', '#334155', 0.6, 0.3)}
+          {getMaterial('REACT-CAT-01', '#B8C1C8', 0.7, 0.15)}
         </mesh>
 
-        {/* Reactor Support Skirt */}
+        {/* Reactor Support Skirt - metallic steel */}
         <mesh position={[0, 1.8, 0]} castShadow receiveShadow>
           <cylinderGeometry args={[2.2, 2.4, 2.0, 32, 1, true]} />
-          {getMaterial('REACT-CAT-01', '#475569', 0.3, 0.7)}
+          {getMaterial('REACT-CAT-01', '#7B8A96', 0.35, 0.72)}
         </mesh>
 
         {/* Reactor Lower Hemispherical Head */}
         <mesh position={[0, 2.8, 0]} castShadow receiveShadow>
           <sphereGeometry args={[2.2, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2]} />
-          {getMaterial('REACT-CAT-01', '#1e293b', 0.25, 0.8)}
+          {getMaterial('REACT-CAT-01', '#8897A4', 0.25, 0.78)}
         </mesh>
 
         {/* Main Cylindrical Pressure Shell (Heavy Wall) */}
         <mesh position={[0, 5.2, 0]} castShadow receiveShadow>
           <cylinderGeometry args={[2.2, 2.2, 4.8, 32]} />
-          {getMaterial('REACT-CAT-01', '#1e293b', 0.25, 0.8)}
+          {getMaterial('REACT-CAT-01', '#8897A4', 0.22, 0.8)}
         </mesh>
 
         {/* Reactor Upper Hemispherical Head */}
         <mesh position={[0, 7.6, 0]} castShadow receiveShadow>
           <sphereGeometry args={[2.2, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          {getMaterial('REACT-CAT-01', '#1e293b', 0.25, 0.8)}
+          {getMaterial('REACT-CAT-01', '#8897A4', 0.25, 0.78)}
         </mesh>
 
         {/* Top Nozzle & Pressure Relief Valve */}
@@ -186,16 +187,16 @@ export default function RefinerySector({
           onHoverAsset(null);
         }}
       >
-        {/* Concrete Foundation */}
+        {/* Concrete Foundation - light concrete */}
         <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
           <boxGeometry args={[4.2, 0.8, 4.2]} />
-          {getMaterial('DIST-COL-01', '#334155', 0.6, 0.3)}
+          {getMaterial('DIST-COL-01', '#B8C1C8', 0.65, 0.12)}
         </mesh>
 
-        {/* Tower Column Body (54 Trays, 15m high) */}
+        {/* Tower Column Body - metallic steel silver */}
         <mesh position={[0, 8.0, 0]} castShadow receiveShadow>
           <cylinderGeometry args={[1.6, 1.8, 14.4, 32]} />
-          {getMaterial('DIST-COL-01', '#475569', 0.3, 0.75)}
+          {getMaterial('DIST-COL-01', '#94A3B8', 0.28, 0.75)}
         </mesh>
 
         {/* Dome Cap */}

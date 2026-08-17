@@ -3,26 +3,27 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { HolographicTwinEngine } from '../hologram/HolographicTwinEngine';
 
-export default function IndustrialPumpStationModel({
+export default function Press45TModel({
   isHologram = false,
   viewMode = 'CAD',
   selectedComponent,
   setSelectedComponent,
   isSimulatingFailure = false,
   components = [],
-  telemetry = null,
+  telemetry,
 }) {
   const groupRef = useRef(null);
-  const shaftRef = useRef(null);
+  const pressRamRef = useRef(null);
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
-    const flow = telemetry?.flowRate || 125.6;
-    const speedFactor = (flow / 125.6) * 12.0;
-
-    // Motor Shaft & Coupling High-Speed Rotation
-    if (shaftRef.current) {
-      shaftRef.current.rotation.x += delta * speedFactor;
+    
+    // Dynamic stamping stroke animation based on SPM speed
+    if (pressRamRef.current) {
+      const spm = telemetry?.speedRpm || 45;
+      const strokeFreq = (spm / 60) * Math.PI * 2;
+      const strokeProgress = (Math.sin(time * strokeFreq) + 1) * 0.5;
+      pressRamRef.current.position.y = 1.7 - strokeProgress * 0.8;
     }
 
     if (!groupRef.current) return;
@@ -91,7 +92,7 @@ export default function IndustrialPumpStationModel({
                   mesh.material.emissiveIntensity = 0.4;
                 }
               } else {
-                mesh.material.opacity = 0.3;
+                mesh.material.opacity = 0.25;
                 if (mesh.userData?.defaultColor) {
                   mesh.material.color.set(mesh.userData.defaultColor);
                   mesh.material.emissive.set('#000000');
@@ -102,8 +103,8 @@ export default function IndustrialPumpStationModel({
               mesh.material.opacity = 1.0;
               if (mesh.userData?.defaultColor) {
                 mesh.material.color.set(mesh.userData.defaultColor);
-                mesh.material.emissive.set(mesh.userData?.emissive || '#000000');
-                mesh.material.emissiveIntensity = mesh.userData?.emissiveIntensity || 0;
+                mesh.material.emissive.set('#000000');
+                mesh.material.emissiveIntensity = 0;
               }
             }
           }
@@ -114,120 +115,135 @@ export default function IndustrialPumpStationModel({
 
   return (
     <group>
-      {/* 1. STRUCTURAL STEEL SKID BASE */}
+      {/* MASSIVE HEAVY STAMPING PRESS FOUNDATION BED */}
       <group position={[0, -0.65, 0]}>
         <mesh position={[0, 0, 0]} userData={{ defaultColor: '#1e293b' }}>
-          <boxGeometry args={[4.8, 0.2, 2.2]} />
+          <boxGeometry args={[4.2, 0.4, 3.4]} />
           <meshStandardMaterial color="#1e293b" roughness={0.4} metalness={0.8} />
         </mesh>
       </group>
 
       <group ref={groupRef}>
-        {/* 2. DRIVE END SPHERICAL ROLLER BEARING B-204 (HIGH VIBRATION NODE) */}
+        {/* 1. Base Bed & Lower Cushion Cylinder */}
         <group
-          userData={{ compId: 'COMP-PMP-BEARING-204' }}
-          position={[-0.4, 0.4, 0]}
+          userData={{ compId: 'COMP-PRS-RAM' }}
+          position={[0, -0.3, 0]}
           onClick={(e) => {
             e.stopPropagation();
-            setSelectedComponent(components.find((c) => c.id === 'COMP-PMP-BEARING-204'));
+            setSelectedComponent(components.find((c) => c.id === 'COMP-PRS-RAM'));
           }}
         >
-          <mesh rotation={[0, 0, Math.PI / 2]} userData={{ defaultColor: '#f59e0b' }}>
-            <cylinderGeometry args={[0.35, 0.35, 0.42, 24]} />
-            <meshStandardMaterial color="#f59e0b" metalness={0.85} roughness={0.2} />
+          <mesh userData={{ defaultColor: '#334155' }}>
+            <boxGeometry args={[3.6, 0.5, 2.8]} />
+            <meshStandardMaterial color="#334155" roughness={0.3} metalness={0.7} />
           </mesh>
-          {/* Tri-Axis Vibration Sensor Node */}
-          <mesh position={[0, 0.4, 0]} userData={{ defaultColor: '#ef4444', emissive: '#ef4444', emissiveIntensity: 0.8 }}>
-            <boxGeometry args={[0.15, 0.15, 0.15]} />
-            <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.8} />
+          <mesh position={[0, 0.4, 0]} userData={{ defaultColor: '#e2e8f0' }}>
+            <cylinderGeometry args={[0.7, 0.7, 0.3, 32]} />
+            <meshStandardMaterial color="#e2e8f0" metalness={0.95} roughness={0.1} />
           </mesh>
         </group>
 
-        {/* 3. FLEXIBLE METALLIC DISC SHAFT COUPLING & SAFETY GUARD */}
+        {/* 2. Solid Chrome Tie Rod Columns */}
         <group
-          ref={shaftRef}
-          userData={{ compId: 'COMP-PMP-COUPLING' }}
-          position={[-1.0, 0.4, 0]}
+          userData={{ compId: 'COMP-PRS-COLUMNS' }}
+          position={[0, 1.4, 0]}
           onClick={(e) => {
             e.stopPropagation();
-            setSelectedComponent(components.find((c) => c.id === 'COMP-PMP-COUPLING'));
+            setSelectedComponent(components.find((c) => c.id === 'COMP-PRS-COLUMNS'));
           }}
         >
-          <mesh rotation={[0, 0, Math.PI / 2]} userData={{ defaultColor: '#eab308' }}>
-            <cylinderGeometry args={[0.26, 0.26, 0.48, 20]} />
-            <meshStandardMaterial color="#eab308" metalness={0.9} roughness={0.1} />
+          {[-1.5, 1.5].map((x, i) =>
+            [-1.1, 1.1].map((z, j) => (
+              <mesh key={`col-${i}-${j}`} position={[x, 0, z]} userData={{ defaultColor: '#cbd5e1' }}>
+                <cylinderGeometry args={[0.18, 0.18, 3.8, 20]} />
+                <meshStandardMaterial color="#cbd5e1" metalness={0.95} roughness={0.08} />
+              </mesh>
+            ))
+          )}
+        </group>
+
+        {/* 3. Top Hydraulic Crown & Upper Cylinder Housing */}
+        <group
+          userData={{ compId: 'COMP-PRS-CROWN' }}
+          position={[0, 3.2, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedComponent(components.find((c) => c.id === 'COMP-PRS-CROWN'));
+          }}
+        >
+          <mesh userData={{ defaultColor: '#15803d' }}>
+            <boxGeometry args={[4.0, 1.2, 3.2]} />
+            <meshStandardMaterial color="#15803d" roughness={0.35} metalness={0.6} />
+          </mesh>
+          {/* Dual Hydraulic Actuator Drums */}
+          {[-1.0, 1.0].map((x, i) => (
+            <mesh key={`act-${i}`} position={[x, 0.8, 0]} userData={{ defaultColor: '#1e293b' }}>
+              <cylinderGeometry args={[0.45, 0.45, 0.8, 24]} />
+              <meshStandardMaterial color="#1e293b" metalness={0.8} />
+            </mesh>
+          ))}
+        </group>
+
+        {/* 4. Moving Hydraulic Stamping Ram & Forming Die */}
+        <group
+          ref={pressRamRef}
+          userData={{ compId: 'COMP-PRS-RAM' }}
+          position={[0, 1.7, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedComponent(components.find((c) => c.id === 'COMP-PRS-RAM'));
+          }}
+        >
+          <mesh userData={{ defaultColor: '#334155' }}>
+            <boxGeometry args={[2.8, 0.8, 2.2]} />
+            <meshStandardMaterial color="#334155" metalness={0.85} roughness={0.2} />
+          </mesh>
+          {/* Lower Die Plate */}
+          <mesh position={[0, -0.45, 0]} userData={{ defaultColor: '#d97706' }}>
+            <boxGeometry args={[2.4, 0.15, 1.8]} />
+            <meshStandardMaterial color="#d97706" metalness={0.9} roughness={0.1} />
           </mesh>
         </group>
 
-        {/* 4. DUAL SUCTION STAINLESS STEEL IMPELLER & CENTRIFUGAL PUMP VOLUTE CASING */}
+        {/* 5. Proportional Directional Valve Bank */}
         <group
-          userData={{ compId: 'COMP-PMP-IMPELLER' }}
-          position={[0.6, 0.4, 0]}
+          userData={{ compId: 'COMP-PRS-VALVE' }}
+          position={[1.8, 2.4, 1.4]}
           onClick={(e) => {
             e.stopPropagation();
-            setSelectedComponent(components.find((c) => c.id === 'COMP-PMP-IMPELLER'));
+            setSelectedComponent(components.find((c) => c.id === 'COMP-PRS-VALVE'));
           }}
         >
-          <mesh rotation={[0, 0, Math.PI / 2]} userData={{ defaultColor: '#0369a1' }}>
-            <cylinderGeometry args={[0.68, 0.68, 0.85, 28]} />
-            <meshStandardMaterial color="#0369a1" roughness={0.25} metalness={0.7} />
+          <mesh userData={{ defaultColor: '#475569' }}>
+            <boxGeometry args={[0.8, 0.7, 0.6]} />
+            <meshStandardMaterial color="#475569" metalness={0.8} />
           </mesh>
+          {/* Solenoid Valve Coils */}
+          {[-0.2, 0.2].map((x, i) => (
+            <mesh key={`sol-${i}`} position={[x, 0.4, 0]} userData={{ defaultColor: '#0284c7' }}>
+              <cylinderGeometry args={[0.08, 0.08, 0.3, 16]} />
+              <meshStandardMaterial color="#0284c7" metalness={0.8} />
+            </mesh>
+          ))}
+        </group>
 
-          {/* Suction Flange */}
-          <mesh position={[0.5, 0, 0]} rotation={[0, 0, Math.PI / 2]} userData={{ defaultColor: '#0284c7' }}>
-            <cylinderGeometry args={[0.42, 0.42, 0.15, 20]} />
-            <meshStandardMaterial color="#0284c7" metalness={0.8} />
+        {/* 6. Hydraulic Oil Reservoir & Pressure Gauge Assembly */}
+        <group
+          userData={{ compId: 'COMP-PRS-SENSORS' }}
+          position={[-1.8, 2.4, -1.2]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedComponent(components.find((c) => c.id === 'COMP-PRS-SENSORS'));
+          }}
+        >
+          <mesh userData={{ defaultColor: '#1e293b' }}>
+            <boxGeometry args={[0.9, 0.8, 0.7]} />
+            <meshStandardMaterial color="#1e293b" />
           </mesh>
-          {/* Discharge Flange Spool */}
-          <mesh position={[0, 0.7, 0]} userData={{ defaultColor: '#0284c7' }}>
-            <cylinderGeometry args={[0.24, 0.24, 0.6, 20]} />
-            <meshStandardMaterial color="#0284c7" metalness={0.8} />
-          </mesh>
-          {/* Analogue Dial Pressure Gauge */}
-          <mesh position={[0.3, 0.9, 0]} rotation={[0, Math.PI / 2, 0]} userData={{ defaultColor: '#f8fafc' }}>
+          {/* Analogue Pressure Dial Gauge */}
+          <mesh position={[0.46, 0.2, 0]} rotation={[0, Math.PI / 2, 0]} userData={{ defaultColor: '#f8fafc' }}>
             <cylinderGeometry args={[0.12, 0.12, 0.04, 20]} />
             <meshStandardMaterial color="#f8fafc" roughness={0.1} metalness={0.9} />
-          </mesh>
-        </group>
-
-        {/* 5. CARTRIDGE MECHANICAL FACE SEAL */}
-        <group
-          userData={{ compId: 'COMP-PMP-SEAL' }}
-          position={[0.1, 0.4, 0]}
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedComponent(components.find((c) => c.id === 'COMP-PMP-SEAL'));
-          }}
-        >
-          <mesh rotation={[0, 0, Math.PI / 2]} userData={{ defaultColor: '#0f766e' }}>
-            <cylinderGeometry args={[0.3, 0.3, 0.25, 20]} />
-            <meshStandardMaterial color="#0f766e" metalness={0.85} roughness={0.2} />
-          </mesh>
-        </group>
-
-        {/* 6. 90 kW TEFC INDUCTION DRIVE MOTOR */}
-        <group
-          userData={{ compId: 'COMP-PMP-MOTOR' }}
-          position={[-1.9, 0.4, 0]}
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedComponent(components.find((c) => c.id === 'COMP-PMP-MOTOR'));
-          }}
-        >
-          {/* Stator Housing (Royal Blue) */}
-          <mesh rotation={[0, 0, Math.PI / 2]} userData={{ defaultColor: '#0284c7' }}>
-            <cylinderGeometry args={[0.55, 0.55, 1.25, 28]} />
-            <meshStandardMaterial color="#0284c7" roughness={0.3} metalness={0.65} />
-          </mesh>
-          {/* Rear Fan Cover Shroud */}
-          <mesh position={[-0.7, 0, 0]} rotation={[0, 0, Math.PI / 2]} userData={{ defaultColor: '#0f172a' }}>
-            <cylinderGeometry args={[0.52, 0.52, 0.22, 24]} />
-            <meshStandardMaterial color="#0f172a" metalness={0.5} roughness={0.5} />
-          </mesh>
-          {/* Top Junction Terminal Box */}
-          <mesh position={[0, 0.65, 0]} userData={{ defaultColor: '#1e293b' }}>
-            <boxGeometry args={[0.4, 0.25, 0.35]} />
-            <meshStandardMaterial color="#1e293b" metalness={0.7} />
           </mesh>
         </group>
       </group>

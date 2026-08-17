@@ -10,18 +10,31 @@ export default function AbbRoboticCellModel({
   setSelectedComponent,
   isSimulatingFailure = false,
   components = [],
+  telemetry = null,
 }) {
   const groupRef = useRef(null);
-  const robotGroupRef = useRef(null);
-  const upperArmRef = useRef(null);
+  const j1TurretRef = useRef(null);
+  const j2ShoulderRef = useRef(null);
+  const j3ElbowRef = useRef(null);
+  const weldArcRef = useRef(null);
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
-    if (robotGroupRef.current) {
-      robotGroupRef.current.rotation.y = Math.sin(time * 0.9) * 0.45;
+    const speedPct = telemetry?.speedRpm || 85;
+    const speedFactor = (speedPct / 100) * 1.2;
+
+    // Kinematic Articulated Joint Rotations (Hierarchical 6-Axis Motion)
+    if (j1TurretRef.current) {
+      j1TurretRef.current.rotation.y = Math.sin(time * 0.9 * speedFactor) * 0.45;
     }
-    if (upperArmRef.current) {
-      upperArmRef.current.rotation.z = Math.cos(time * 1.4) * 0.15;
+    if (j2ShoulderRef.current) {
+      j2ShoulderRef.current.rotation.z = Math.sin(time * 1.2 * speedFactor) * 0.18;
+    }
+    if (j3ElbowRef.current) {
+      j3ElbowRef.current.rotation.z = -Math.cos(time * 1.4 * speedFactor) * 0.22;
+    }
+    if (weldArcRef.current) {
+      weldArcRef.current.intensity = 0.5 + Math.sin(time * 25.0) * 0.5;
     }
 
     if (!groupRef.current) return;
@@ -90,7 +103,7 @@ export default function AbbRoboticCellModel({
                   mesh.material.emissiveIntensity = 0.4;
                 }
               } else {
-                mesh.material.opacity = 0.25;
+                mesh.material.opacity = 0.3;
                 if (mesh.userData?.defaultColor) {
                   mesh.material.color.set(mesh.userData.defaultColor);
                   mesh.material.emissive.set('#000000');
@@ -101,8 +114,8 @@ export default function AbbRoboticCellModel({
               mesh.material.opacity = 1.0;
               if (mesh.userData?.defaultColor) {
                 mesh.material.color.set(mesh.userData.defaultColor);
-                mesh.material.emissive.set('#000000');
-                mesh.material.emissiveIntensity = 0;
+                mesh.material.emissive.set(mesh.userData?.emissive || '#000000');
+                mesh.material.emissiveIntensity = mesh.userData?.emissiveIntensity || 0;
               }
             }
           }
@@ -113,128 +126,148 @@ export default function AbbRoboticCellModel({
 
   return (
     <group>
-      {/* HEAVY ROBOT BASE PEDESTAL */}
+      {/* 1. HEAVY PEDESTAL MOUNTING BASE */}
       <group position={[0, -0.65, 0]}>
         <mesh position={[0, 0, 0]} userData={{ defaultColor: '#1e293b' }}>
-          <cylinderGeometry args={[0.85, 0.95, 0.3, 32]} />
+          <cylinderGeometry args={[0.9, 1.0, 0.3, 32]} />
           <meshStandardMaterial color="#1e293b" roughness={0.4} metalness={0.8} />
         </mesh>
+        {/* Anchor Bolt Flange Lugs */}
+        {Array.from({ length: 6 }).map((_, i) => {
+          const a = (i / 6) * Math.PI * 2;
+          return (
+            <mesh key={`lug-${i}`} position={[Math.cos(a) * 0.85, 0.12, Math.sin(a) * 0.85]} userData={{ defaultColor: '#475569' }}>
+              <cylinderGeometry args={[0.08, 0.08, 0.1, 12]} />
+              <meshStandardMaterial color="#475569" metalness={0.9} />
+            </mesh>
+          );
+        })}
       </group>
 
       <group ref={groupRef}>
-        {/* 1. Base Swivel Spindle */}
-        <group userData={{ compId: 'base-spindle' }} position={[0, -0.4, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'base-spindle')); }}>
-          <mesh userData={{ defaultColor: '#334155' }}>
-            <cylinderGeometry args={[0.75, 0.8, 0.4, 32]} />
-            <meshStandardMaterial color="#334155" roughness={0.3} metalness={0.8} />
+        {/* 2. BASE AZIMUTH MOTOR & J1 SWIVEL TURRET */}
+        <group
+          ref={j1TurretRef}
+          userData={{ compId: 'COMP-ROB-BASE' }}
+          position={[0, -0.3, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedComponent(components.find((c) => c.id === 'COMP-ROB-BASE'));
+          }}
+        >
+          {/* Swivel Housing */}
+          <mesh userData={{ defaultColor: '#ea580c' }}>
+            <cylinderGeometry args={[0.7, 0.75, 0.45, 32]} />
+            <meshStandardMaterial color="#ea580c" roughness={0.3} metalness={0.5} />
           </mesh>
-        </group>
-
-        {/* 2. 6-Axis ABB Heavy Payload Robot Arm (IRB 6700) */}
-        <group ref={robotGroupRef} userData={{ compId: '6axis-robot-arm' }} position={[0, 0.6, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === '6axis-robot-arm')); }}>
-          
-          {/* Axis 1 Base Turret */}
-          <mesh position={[0, 0, 0]} userData={{ defaultColor: '#ff5500' }}>
-            <cylinderGeometry args={[0.55, 0.55, 0.6, 24]} />
-            <meshStandardMaterial color="#ff5500" roughness={0.3} metalness={0.5} />
-          </mesh>
-
-          {/* Axis 2 Lower Arm Link */}
-          <mesh position={[0, 0.8, 0]} rotation={[0, 0, 0.2]} userData={{ defaultColor: '#ff5500' }}>
-            <boxGeometry args={[0.4, 1.4, 0.4]} />
-            <meshStandardMaterial color="#ff5500" roughness={0.3} metalness={0.5} />
+          {/* Dark Metallic Joint Collar */}
+          <mesh position={[0, 0.25, 0]} userData={{ defaultColor: '#334155' }}>
+            <cylinderGeometry args={[0.65, 0.65, 0.12, 32]} />
+            <meshStandardMaterial color="#334155" metalness={0.85} roughness={0.2} />
           </mesh>
 
-          {/* Counter-weight Hydraulic Cylinder */}
-          <mesh position={[-0.35, 0.7, 0]} rotation={[0, 0, -0.2]} userData={{ defaultColor: '#1e293b' }}>
-            <cylinderGeometry args={[0.12, 0.12, 1.1, 20]} />
-            <meshStandardMaterial color="#1e293b" metalness={0.9} />
-          </mesh>
-
-          {/* Axis 3 Upper Arm Link */}
-          <group ref={upperArmRef} position={[0.4, 1.5, 0]}>
-            <mesh rotation={[0, 0, -0.4]} userData={{ defaultColor: '#ff5500' }}>
-              <boxGeometry args={[0.35, 1.2, 0.35]} />
-              <meshStandardMaterial color="#ff5500" roughness={0.3} metalness={0.5} />
+          {/* 3. SHOULDER HARMONIC REDUCER J2 & LOWER ARM LINK */}
+          <group
+            ref={j2ShoulderRef}
+            userData={{ compId: 'COMP-ROB-SHOULDER' }}
+            position={[0, 0.5, 0]}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedComponent(components.find((c) => c.id === 'COMP-ROB-SHOULDER'));
+            }}
+          >
+            {/* Shoulder Casting (ABB Orange) */}
+            <mesh position={[0, 0.6, 0]} userData={{ defaultColor: '#ea580c' }}>
+              <boxGeometry args={[0.42, 1.4, 0.42]} />
+              <meshStandardMaterial color="#ea580c" roughness={0.3} metalness={0.5} />
+            </mesh>
+            {/* Gas Spring Damper Counter-weight Cylinder */}
+            <mesh position={[-0.32, 0.5, 0]} rotation={[0, 0, -0.15]} userData={{ defaultColor: '#1e293b' }}>
+              <cylinderGeometry args={[0.1, 0.1, 1.1, 20]} />
+              <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.1} />
             </mesh>
 
-            {/* Axis 4/5/6 Spherical Wrist Joint */}
-            <mesh position={[0.5, -0.4, 0]} userData={{ defaultColor: '#1e293b' }}>
-              <sphereGeometry args={[0.24, 20, 20]} />
-              <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.2} />
-            </mesh>
+            {/* 4. ELBOW CYCLOIDAL DRIVE J3 & UPPER ARM LINK */}
+            <group
+              ref={j3ElbowRef}
+              userData={{ compId: 'COMP-ROB-ELBOW' }}
+              position={[0, 1.3, 0]}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedComponent(components.find((c) => c.id === 'COMP-ROB-ELBOW'));
+              }}
+            >
+              {/* Elbow Joint Pivot Housing */}
+              <mesh userData={{ defaultColor: '#334155' }}>
+                <cylinderGeometry args={[0.26, 0.26, 0.46, 20]} rotation={[Math.PI / 2, 0, 0]} />
+                <meshStandardMaterial color="#334155" metalness={0.85} roughness={0.2} />
+              </mesh>
+              {/* Forearm Extension Casting */}
+              <mesh position={[0.45, 0, 0]} rotation={[0, 0, -Math.PI / 2]} userData={{ defaultColor: '#ea580c' }}>
+                <boxGeometry args={[0.32, 1.1, 0.32]} />
+                <meshStandardMaterial color="#ea580c" roughness={0.3} metalness={0.5} />
+              </mesh>
+
+              {/* 5. LASER-GUIDED WELDING TORCH END EFFECTOR (J4/J5/J6 WRIST) */}
+              <group
+                userData={{ compId: 'COMP-ROB-TORCH' }}
+                position={[1.0, 0, 0]}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedComponent(components.find((c) => c.id === 'COMP-ROB-TORCH'));
+                }}
+              >
+                {/* Spherical Wrist Joint */}
+                <mesh userData={{ defaultColor: '#1e293b' }}>
+                  <sphereGeometry args={[0.2, 20, 20]} />
+                  <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.15} />
+                </mesh>
+                {/* Welding Torch Tool Body */}
+                <mesh position={[0.25, -0.15, 0]} rotation={[0, 0, -0.6]} userData={{ defaultColor: '#e2e8f0' }}>
+                  <cylinderGeometry args={[0.06, 0.04, 0.5, 16]} />
+                  <meshStandardMaterial color="#e2e8f0" metalness={0.95} roughness={0.1} />
+                </mesh>
+                {/* Copper Gas Nozzle Tip */}
+                <mesh position={[0.38, -0.32, 0]} rotation={[0, 0, -0.6]} userData={{ defaultColor: '#b45309' }}>
+                  <cylinderGeometry args={[0.03, 0.015, 0.15, 12]} />
+                  <meshStandardMaterial color="#b45309" metalness={0.95} roughness={0.1} />
+                </mesh>
+                {/* Welding Arc Light Point Source */}
+                <pointLight ref={weldArcRef} position={[0.42, -0.38, 0]} color="#38bdf8" intensity={1.5} distance={3} />
+              </group>
+            </group>
           </group>
-
         </group>
 
-        {/* 3. End-Effector Tooling */}
-        <group userData={{ compId: 'end-effector-tooling' }} position={[1.4, 1.2, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'end-effector-tooling')); }}>
-          <mesh userData={{ defaultColor: '#e2e8f0' }}>
-            <boxGeometry args={[0.35, 0.35, 0.55]} />
-            <meshStandardMaterial color="#e2e8f0" metalness={0.98} roughness={0.1} />
-          </mesh>
-          {/* Parallel Gripper Fingers */}
-          {[-0.14, 0.14].map((z, i) => (
-            <mesh key={i} position={[0.25, 0, z]} userData={{ defaultColor: '#0f766e' }}>
-              <boxGeometry args={[0.2, 0.12, 0.06]} />
-              <meshStandardMaterial color="#0f766e" metalness={0.8} />
-            </mesh>
-          ))}
-        </group>
-
-        {/* 4. Safety Light Curtain Grid */}
-        <group userData={{ compId: 'safety-light-curtain' }} position={[-1.8, 0.8, 1.2]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'safety-light-curtain')); }}>
-          <mesh userData={{ defaultColor: '#f59e0b' }}>
-            <boxGeometry args={[0.1, 2.0, 0.1]} />
-            <meshStandardMaterial color="#f59e0b" emissive="#f59e0b" emissiveIntensity={0.6} />
-          </mesh>
-          {/* Infrared Beam Lines */}
-          {[-0.8, -0.4, 0, 0.4, 0.8].map((y, i) => (
-            <mesh key={i} position={[1.8, y, 0]} rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[0.01, 0.01, 3.6, 8]} />
-              <meshBasicMaterial color="#ef4444" transparent={true} opacity={0.6} />
-            </mesh>
-          ))}
-        </group>
-
-        {/* 5. Teach Pendant */}
-        <group userData={{ compId: 'teach-pendant' }} position={[2.2, 0.4, 1.0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'teach-pendant')); }}>
-          <mesh rotation={[0.4, 0, 0]} userData={{ defaultColor: '#1e293b' }}>
-            <boxGeometry args={[0.4, 0.55, 0.1]} />
-            <meshStandardMaterial color="#1e293b" />
-          </mesh>
-          <mesh position={[0, 0.42, 0.06]} rotation={[0.4, 0, 0]} userData={{ defaultColor: '#38bdf8' }}>
-            <planeGeometry args={[0.3, 0.35]} />
-            <meshBasicMaterial color="#38bdf8" />
-          </mesh>
-        </group>
-
-        {/* 6. Pneumatic Valve Manifold */}
-        <group userData={{ compId: 'pneumatic-valve-manifold' }} position={[1.2, 0.2, -0.6]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'pneumatic-valve-manifold')); }}>
-          <mesh userData={{ defaultColor: '#64748b' }}>
-            <boxGeometry args={[0.7, 0.35, 0.45]} />
-            <meshStandardMaterial color="#64748b" metalness={0.8} />
-          </mesh>
-        </group>
-
-        {/* 7. IRC5 Control Cabinet */}
-        <group userData={{ compId: 'control-cabinet-irc5' }} position={[2.5, 0.6, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'control-cabinet-irc5')); }}>
-          <mesh userData={{ defaultColor: '#334155' }}>
-            <boxGeometry args={[1.0, 1.8, 0.9]} />
+        {/* 6. IRC5 CONTROL CABINET */}
+        <group position={[1.8, 0.4, -1.2]} userData={{ defaultColor: '#334155' }}>
+          <mesh castShadow userData={{ defaultColor: '#334155' }}>
+            <boxGeometry args={[0.9, 1.6, 0.8]} />
             <meshStandardMaterial color="#334155" roughness={0.4} metalness={0.7} />
           </mesh>
-          {/* Status Stack Light */}
-          <mesh position={[0, 1.0, 0]} userData={{ defaultColor: '#22c55e' }}>
-            <cylinderGeometry args={[0.06, 0.06, 0.25, 16]} />
+          {/* Green Status Beacon Light */}
+          <mesh position={[0, 0.9, 0]} userData={{ defaultColor: '#22c55e', emissive: '#22c55e', emissiveIntensity: 0.8 }}>
+            <cylinderGeometry args={[0.06, 0.06, 0.22, 16]} />
             <meshStandardMaterial color="#22c55e" emissive="#22c55e" emissiveIntensity={0.8} />
           </mesh>
         </group>
 
+        {/* 7. TEACH PENDANT CONTROLLER */}
+        <group position={[1.8, 1.25, -0.7]}>
+          <mesh rotation={[0.4, 0, 0]} userData={{ defaultColor: '#1e293b' }}>
+            <boxGeometry args={[0.35, 0.5, 0.08]} />
+            <meshStandardMaterial color="#1e293b" />
+          </mesh>
+          <mesh position={[0, 0.04, 0.05]} rotation={[0.4, 0, 0]} userData={{ defaultColor: '#38bdf8', emissive: '#0284c7', emissiveIntensity: 0.5 }}>
+            <planeGeometry args={[0.26, 0.32]} />
+            <meshStandardMaterial color="#38bdf8" emissive="#0284c7" emissiveIntensity={0.5} />
+          </mesh>
+        </group>
       </group>
 
-      {/* 8. HOLOGRAPHIC TWIN ENGINE OVERLAY */}
+      {/* HOLOGRAPHIC TWIN OVERLAY */}
       {isHologram && (
-        <HolographicTwinEngine 
+        <HolographicTwinEngine
           components={components}
           selectedComponent={selectedComponent}
           setSelectedComponent={setSelectedComponent}

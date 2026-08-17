@@ -1,248 +1,253 @@
 import React, { useState, useEffect } from 'react';
 import {
   Activity,
-  Box,
-  BarChart2,
-  FileText,
-  Wrench,
-  Search,
-  Bell,
-  HelpCircle,
-  User,
-  Radio,
   Layers,
-  Thermometer
+  Sparkles,
+  RotateCcw,
+  Maximize2,
+  Minimize2,
+  Compass,
+  AlertTriangle,
+  Clock,
+  ShieldCheck,
+  Building2,
+  Thermometer,
+  Zap,
+  TrendingUp,
+  Cpu,
+  Waves,
+  Eye,
+  Factory
 } from 'lucide-react';
 
 export default function TopNavigationHub({
   plantOverview,
-  viewMode,
+  viewMode = 'OVERVIEW',
   onChangeViewMode,
-  cameraPreset,
+  cameraPreset = 'overview',
   onChangeCameraPreset,
-  isDroneTour,
+  isDroneTour = false,
   onToggleDroneTour,
-  isAutoRotate,
-  onToggleAutoRotate,
-  isSimulating,
-  onToggleSimulation,
-  overallHealth = 95.2,
-  activeAlertCount = 3,
+  onResetCamera,
+  overallHealth = 94.2,
+  activeAlertCount = 12,
+  onOpenEmergencyModal,
+  isHologramVibration = false,
+  onToggleHologramVibration,
 }) {
-  const [currentTime, setCurrentTime] = useState('');
-  const [currentDate, setCurrentDate] = useState('');
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [timeUtc, setTimeUtc] = useState('10:24:35 AM');
 
+  // Live UTC Clock updater
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setCurrentTime(now.toTimeString().substring(0, 8));
-      setCurrentDate(
-        now.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
+      setTimeUtc(
+        now.toLocaleTimeString('en-US', {
+          hour12: true,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
         })
       );
     };
     updateTime();
-    const timer = setInterval(updateTime, 1000);
-    return () => clearInterval(timer);
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  const navTabs = [
-    { id: 'Overview', label: 'Overview', icon: Activity },
-    { id: 'Assets', label: 'Assets', icon: Box },
-    { id: 'Analytics', label: 'Analytics', icon: BarChart2 },
-    { id: 'Reports', label: 'Reports', icon: FileText },
-    { id: 'Maintenance', label: 'Maintenance', icon: Wrench },
-  ];
+  const viewModes = ['OVERVIEW', 'FLOOR 1', 'FLOOR 2', 'FLOOR 3', 'UTILITIES'];
 
   return (
-    <header className="absolute top-3.5 left-3.5 right-3.5 z-30 pointer-events-auto select-none">
-      <div className="glass-card-white rounded-2xl px-5 py-3 shadow-md flex items-center justify-between gap-4 max-w-[1920px] mx-auto border border-[#d8e6ff]">
-        {/* Left Section: Branding & Plant Info */}
-        <div className="flex items-center gap-6">
-          {/* Logo & Name */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-[#1e88e5] to-[#1565c0] text-white shadow-md shadow-blue-500/20">
-              <Activity className="w-5 h-5" />
+    <header className="absolute top-0 left-0 right-0 z-40 pointer-events-auto select-none font-sans flex flex-col">
+      {/* 1. Main Header Bar */}
+      <div className={`backdrop-blur-md border-b px-5 py-2 shadow-sm flex items-center justify-between transition-colors duration-300 ${
+        isHologramVibration 
+          ? 'bg-[#020617]/95 border-[#1e293b] text-white' 
+          : 'bg-white/95 border-[#d8e6ff] text-[#0f172a]'
+      }`}>
+        {/* Left: Branding & Status */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#1976d2] to-[#0d47a1] flex items-center justify-center text-white shadow-sm font-bold text-sm">
+              TM
             </div>
             <div>
-              <div className="font-bold text-sm tracking-tight text-[#1e293b] flex items-center gap-1.5">
-                <span>TWINMIND AI</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-sm tracking-tight">
+                  TwinMind
+                </span>
+                <span className="text-xs font-bold text-[#1976d2] uppercase tracking-wider">
+                  Ai
+                </span>
+                <span className={`text-[10px] font-medium border-l pl-1.5 ml-1 ${isHologramVibration ? 'border-[#334155] text-[#94a3b8]' : 'border-[#cbd5e1] text-[#64748b]'}`}>
+                  Industrial Command Center
+                </span>
               </div>
-              <p className="text-[11px] font-medium text-[#64748b]">
-                Smart Operations Center
-              </p>
+              <div className={`text-[10px] font-semibold flex items-center gap-1.5 ${isHologramVibration ? 'text-[#94a3b8]' : 'text-[#64748b]'}`}>
+                <span>Munich GigaFactory Campus 04</span>
+                <span>•</span>
+                <span className="flex items-center gap-1 text-emerald-500 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  LIVE
+                </span>
+              </div>
             </div>
-          </div>
-
-          {/* Vertical Divider */}
-          <div className="hidden xl:block h-7 w-[1px] bg-[#e2edff]" />
-
-          {/* Plant Selector */}
-          <div className="hidden xl:block">
-            <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider">
-              Plant
-            </div>
-            <div className="text-xs font-bold text-[#1e293b]">GigaFactory 04</div>
-            <div className="text-[10px] text-[#64748b]">
-              Smart Refining & Manufacturing Complex
-            </div>
-          </div>
-
-          {/* Vertical Divider */}
-          <div className="hidden 2xl:block h-7 w-[1px] bg-[#e2edff]" />
-
-          {/* Time UTC */}
-          <div className="hidden 2xl:block">
-            <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider">
-              Time (UTC)
-            </div>
-            <div className="text-xs font-bold text-[#1e293b] font-mono">
-              {currentTime || '07:20:12'}
-            </div>
-            <div className="text-[10px] text-[#64748b]">{currentDate || 'May 16, 2025'}</div>
-          </div>
-
-          {/* Shift */}
-          <div className="hidden 2xl:block">
-            <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider">
-              Shift
-            </div>
-            <div className="text-xs font-bold text-[#1e293b]">ALPHA</div>
-            <div className="text-[10px] text-[#64748b]">06:00 - 14:00</div>
           </div>
         </div>
 
-        {/* Center: Navigation View Tabs */}
-        <div className="flex items-center gap-1 bg-[#edf4ff] p-1 rounded-xl border border-[#d8e6ff]">
-          {navTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  if (tab.id === 'Overview') {
-                    onChangeCameraPreset('overview');
-                  } else if (tab.id === 'Assets') {
-                    onChangeCameraPreset('refinery');
-                  } else if (tab.id === 'Maintenance') {
-                    onChangeCameraPreset('assembly');
-                  }
-                }}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  isActive
-                    ? 'bg-[#1e88e5] text-white shadow-sm font-bold'
-                    : 'text-[#475569] hover:text-[#1e88e5] hover:bg-white/60'
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-[#64748b]'}`} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Right Section: Live Stream, View Modes & User Avatar */}
-        <div className="flex items-center gap-3.5">
-          {/* Live Stream Indicator Pill */}
+        {/* Center: DUAL PRIMARY TWIN VIEW OPTIONS */}
+        <div className="flex items-center p-1 rounded-2xl border shadow-inner transition-all bg-[#0f172a]/5 dark:bg-[#0f172a] border-[#cbd5e1] dark:border-[#1e293b]">
+          {/* OPTION 1: REALISTIC FACTORY CAMPUS */}
           <button
-            onClick={onToggleSimulation}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#ecfdf5] border border-[#a7f3d0] text-[#065f46] shadow-sm transition-all hover:bg-[#d1fae5]"
+            onClick={() => onToggleHologramVibration?.(false)}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+              !isHologramVibration
+                ? 'bg-[#1976d2] text-white shadow-md ring-2 ring-[#1976d2]/30 scale-[1.02]'
+                : 'text-[#64748b] hover:text-[#0f172a] hover:bg-black/5'
+            }`}
           >
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22c55e] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#22c55e]" />
-            </span>
-            <div className="text-left">
-              <div className="text-[10px] font-bold tracking-tight">LIVE STREAM</div>
-              <div className="text-[9px] text-[#047857]">All Systems Online</div>
-            </div>
+            <Factory className="w-4 h-4" />
+            <span>REALISTIC FACTORY</span>
           </button>
 
-          {/* Quick View Mode Toggle Dropdown */}
-          <div className="hidden lg:flex items-center gap-1 bg-[#edf4ff] p-1 rounded-xl border border-[#d8e6ff]">
-            <button
-              onClick={() => onChangeViewMode('CAD')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                viewMode === 'CAD'
-                  ? 'bg-white text-[#1e88e5] shadow-xs font-bold'
-                  : 'text-[#64748b] hover:text-[#1e293b]'
-              }`}
-            >
-              Daylight 3D
-            </button>
-            <button
-              onClick={() => onChangeViewMode('HOLOGRAM')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                viewMode === 'HOLOGRAM'
-                  ? 'bg-white text-[#1e88e5] shadow-xs font-bold'
-                  : 'text-[#64748b] hover:text-[#1e293b]'
-              }`}
-            >
-              Hologram
-            </button>
-            <button
-              onClick={() => onChangeViewMode('THERMAL')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                viewMode === 'THERMAL'
-                  ? 'bg-white text-[#1e88e5] shadow-xs font-bold'
-                  : 'text-[#64748b] hover:text-[#1e293b]'
-              }`}
-            >
-              Thermal
-            </button>
-          </div>
+          {/* OPTION 2: HOLOGRAM VIBRATION TWIN */}
+          <button
+            onClick={() => onToggleHologramVibration?.(true)}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+              isHologramVibration
+                ? 'bg-[#00c2ff] text-[#020617] shadow-md shadow-[#00c2ff]/30 ring-2 ring-[#00c2ff]/50 scale-[1.02] animate-pulse'
+                : 'text-[#64748b] hover:text-[#00c2ff] hover:bg-black/5'
+            }`}
+          >
+            <Waves className="w-4 h-4" />
+            <span>HOLOGRAM VIBRATION</span>
+          </button>
+        </div>
 
-          {/* Drone Tour Button */}
+        {/* Right: Drone Tour, Reset, UTC Clock */}
+        <div className="flex items-center gap-3">
+          {/* Sub-level View switcher (when in Realistic Factory mode) */}
+          {!isHologramVibration && (
+            <div className="flex items-center gap-1 bg-[#edf4ff] p-1 rounded-xl border border-[#d8e6ff]">
+              {viewModes.map((mode) => {
+                const isActive = viewMode === mode;
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => onChangeViewMode?.(mode)}
+                    className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
+                      isActive
+                        ? 'bg-[#1976d2] text-white shadow-2xs'
+                        : 'text-[#64748b] hover:text-[#0f172a]'
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 360 Drone Tour Button */}
           <button
             onClick={onToggleDroneTour}
-            className={`p-2 rounded-xl border transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border ${
               isDroneTour
-                ? 'bg-[#1e88e5] text-white border-[#1e88e5] shadow-sm'
-                : 'bg-white text-[#64748b] hover:text-[#1e88e5] border-[#d8e6ff]'
+                ? 'bg-[#1976d2] text-white border-[#1976d2] shadow-xs'
+                : isHologramVibration
+                ? 'bg-[#0f172a] hover:bg-[#1e293b] text-[#94a3b8] border-[#1e293b]'
+                : 'bg-white hover:bg-[#edf4ff] text-[#64748b] border-[#d8e6ff]'
             }`}
-            title="360° Drone Tour"
           >
-            <Radio className="w-4 h-4" />
+            <Compass className="w-3.5 h-3.5" />
+            <span>360° TOUR</span>
           </button>
 
-          {/* Action Icons */}
-          <button className="p-2 rounded-xl bg-white hover:bg-[#edf4ff] text-[#64748b] hover:text-[#1e88e5] border border-[#d8e6ff] transition-all">
-            <Search className="w-4 h-4" />
+          {/* Reset Camera View Button */}
+          <button
+            onClick={onResetCamera}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+              isHologramVibration
+                ? 'bg-[#0f172a] hover:bg-[#1e293b] text-[#94a3b8] border-[#1e293b]'
+                : 'bg-white hover:bg-[#edf4ff] text-[#64748b] border-[#d8e6ff]'
+            }`}
+            title="Reset View to Overview"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>RESET</span>
           </button>
 
-          <button className="p-2 rounded-xl bg-white hover:bg-[#edf4ff] text-[#64748b] hover:text-[#1e88e5] border border-[#d8e6ff] relative transition-all">
-            <Bell className="w-4 h-4" />
-            {activeAlertCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#1e88e5] text-white text-[9px] font-bold flex items-center justify-center border-2 border-white shadow-xs">
-                {activeAlertCount}
-              </span>
-            )}
-          </button>
-
-          <button className="p-2 rounded-xl bg-white hover:bg-[#edf4ff] text-[#64748b] hover:text-[#1e88e5] border border-[#d8e6ff] transition-all">
-            <HelpCircle className="w-4 h-4" />
-          </button>
-
-          {/* User Profile Avatar */}
-          <div className="flex items-center gap-2 pl-2 border-l border-[#e2edff]">
-            <div className="w-8 h-8 rounded-full bg-[#1e88e5]/15 border border-[#1e88e5]/30 flex items-center justify-center text-[#1e88e5] font-bold text-xs">
-              AD
-            </div>
-            <div className="hidden xl:block text-left">
-              <div className="text-xs font-bold text-[#1e293b] leading-none">Admin</div>
-              <div className="text-[10px] text-[#64748b] leading-tight mt-0.5">
-                Operations Lead
-              </div>
-            </div>
+          {/* UTC Clock Display */}
+          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-mono font-bold ${
+            isHologramVibration
+              ? 'bg-[#0f172a] border-[#1e293b] text-[#38bdf8]'
+              : 'bg-[#edf4ff] border-[#d8e6ff] text-[#0f172a]'
+          }`}>
+            <Clock className="w-3.5 h-3.5 text-[#1976d2]" />
+            <span>{timeUtc} UTC</span>
           </div>
         </div>
       </div>
+
+      {/* 2. Secondary Sub-Bar with KPIs (Visible in Normal Mode) */}
+      {!isHologramVibration && (
+        <div className="bg-white/80 backdrop-blur-md border-b border-[#edf4ff] px-5 py-1.5 shadow-2xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">
+              REALISTIC INDUSTRIAL CAMPUS • DAYLIGHT TWIN
+            </span>
+          </div>
+
+          {/* KPI Mini-Cards */}
+          <div className="flex items-center gap-4 text-xs font-medium">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#64748b]">Plant Health:</span>
+              <span className="font-extrabold text-emerald-600">
+                {overallHealth}% Excellent
+              </span>
+            </div>
+
+            <div className="w-px h-3 bg-[#cbd5e1]" />
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#64748b]">OEE:</span>
+              <span className="font-extrabold text-[#0f172a]">85.6%</span>
+            </div>
+
+            <div className="w-px h-3 bg-[#cbd5e1]" />
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#64748b]">Production Rate:</span>
+              <span className="font-extrabold text-[#0f172a]">
+                1,245 u/h <span className="text-emerald-600 text-[10px]">(+38)</span>
+              </span>
+            </div>
+
+            <div className="w-px h-3 bg-[#cbd5e1]" />
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#64748b]">Active Assets:</span>
+              <span className="font-extrabold text-[#0f172a]">246 / 258</span>
+            </div>
+
+            <div className="w-px h-3 bg-[#cbd5e1]" />
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#64748b]">Energy:</span>
+              <span className="font-extrabold text-[#0f172a]">24.8 MW</span>
+            </div>
+
+            <div className="w-px h-3 bg-[#cbd5e1]" />
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#64748b]">Alerts:</span>
+              <span className="font-extrabold text-rose-600">3 Crit</span>
+              <span className="text-[#64748b]">/</span>
+              <span className="font-extrabold text-amber-600">12 Warn</span>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

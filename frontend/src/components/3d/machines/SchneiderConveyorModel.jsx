@@ -10,14 +10,19 @@ export default function SchneiderConveyorModel({
   setSelectedComponent,
   isSimulatingFailure = false,
   components = [],
+  telemetry = null,
 }) {
   const groupRef = useRef(null);
   const beltRef = useRef(null);
+  const toteRef = useRef(null);
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
-    if (beltRef.current) {
-      beltRef.current.position.x = (time * 0.6) % 0.8 - 0.4;
+    const speed = telemetry?.speedRpm || 38;
+    const speedFactor = (speed / 38) * 0.6;
+
+    if (toteRef.current) {
+      toteRef.current.position.x = ((time * speedFactor) % 4.8) - 2.4;
     }
 
     if (!groupRef.current) return;
@@ -86,7 +91,7 @@ export default function SchneiderConveyorModel({
                   mesh.material.emissiveIntensity = 0.4;
                 }
               } else {
-                mesh.material.opacity = 0.25;
+                mesh.material.opacity = 0.3;
                 if (mesh.userData?.defaultColor) {
                   mesh.material.color.set(mesh.userData.defaultColor);
                   mesh.material.emissive.set('#000000');
@@ -97,8 +102,8 @@ export default function SchneiderConveyorModel({
               mesh.material.opacity = 1.0;
               if (mesh.userData?.defaultColor) {
                 mesh.material.color.set(mesh.userData.defaultColor);
-                mesh.material.emissive.set('#000000');
-                mesh.material.emissiveIntensity = 0;
+                mesh.material.emissive.set(mesh.userData?.emissive || '#000000');
+                mesh.material.emissiveIntensity = mesh.userData?.emissiveIntensity || 0;
               }
             }
           }
@@ -109,91 +114,119 @@ export default function SchneiderConveyorModel({
 
   return (
     <group>
-      {/* STEEL CHASSIS SUPPORT FRAME */}
+      {/* 1. HEAVY STRUCTURAL STEEL CHANNEL FRAME & SUPPORT LEGS */}
       <group position={[0, -0.6, 0]}>
-        <mesh position={[0, 0, 0]} userData={{ defaultColor: '#0f766e' }}>
-          <boxGeometry args={[5.6, 0.12, 1.4]} />
-          <meshStandardMaterial color="#0f766e" roughness={0.3} metalness={0.7} />
-        </mesh>
-        {/* Support Legs */}
-        {[-2.5, 0, 2.5].map((x, i) => (
-          <mesh key={i} position={[x, -0.4, 0]} userData={{ defaultColor: '#334155' }}>
-            <boxGeometry args={[0.15, 0.8, 1.2]} />
-            <meshStandardMaterial color="#334155" metalness={0.8} />
+        {[-2.2, 0, 2.2].map((x, i) => (
+          <mesh key={`leg-${i}`} position={[x, -0.3, 0]} userData={{ defaultColor: '#334155' }}>
+            <boxGeometry args={[0.16, 0.8, 1.3]} />
+            <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
           </mesh>
         ))}
       </group>
 
       <group ref={groupRef}>
-        {/* 1. High-Speed Sorting Belt */}
-        <group userData={{ compId: 'sorting-belt' }} position={[0, 0, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'sorting-belt')); }}>
+        {/* 2. STRUCTURAL CHANNEL SIDE FRAMES */}
+        <group
+          userData={{ compId: 'COMP-CNV-FRAME' }}
+          position={[0, -0.2, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedComponent(components.find((c) => c.id === 'COMP-CNV-FRAME'));
+          }}
+        >
+          {[-0.65, 0.65].map((z, i) => (
+            <mesh key={`rail-${i}`} position={[0, 0, z]} userData={{ defaultColor: '#475569' }}>
+              <boxGeometry args={[5.2, 0.16, 0.08]} />
+              <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
+            </mesh>
+          ))}
+          {/* Yellow Safety Side Guide Rails */}
+          {[-0.62, 0.62].map((z, i) => (
+            <mesh key={`guide-${i}`} position={[0, 0.22, z]} userData={{ defaultColor: '#eab308' }}>
+              <boxGeometry args={[5.2, 0.06, 0.04]} />
+              <meshStandardMaterial color="#eab308" metalness={0.8} />
+            </mesh>
+          ))}
+        </group>
+
+        {/* 3. HELICAL-BEVEL GEARMOTOR DRIVE UNIT & DRIVE DRUM */}
+        <group
+          userData={{ compId: 'COMP-CNV-DRIVE' }}
+          position={[2.4, 0, -0.8]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedComponent(components.find((c) => c.id === 'COMP-CNV-DRIVE'));
+          }}
+        >
+          <mesh rotation={[0, 0, Math.PI / 2]} userData={{ defaultColor: '#0284c7' }}>
+            <cylinderGeometry args={[0.3, 0.3, 0.6, 20]} />
+            <meshStandardMaterial color="#0284c7" roughness={0.3} metalness={0.7} />
+          </mesh>
+          {/* Gearbox Housing */}
+          <mesh position={[0, 0, 0.4]} userData={{ defaultColor: '#1e293b' }}>
+            <boxGeometry args={[0.45, 0.45, 0.35]} />
+            <meshStandardMaterial color="#1e293b" metalness={0.8} />
+          </mesh>
+        </group>
+
+        {/* 4. HIGH-TRACTION VULCANIZED RUBBER CONVEYOR BELT */}
+        <group
+          ref={beltRef}
+          userData={{ compId: 'COMP-CNV-BELT' }}
+          position={[0, 0.05, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedComponent(components.find((c) => c.id === 'COMP-CNV-BELT'));
+          }}
+        >
           <mesh userData={{ defaultColor: '#1e293b' }}>
-            <boxGeometry args={[5.2, 0.22, 1.1]} />
-            <meshStandardMaterial color="#1e293b" roughness={0.6} />
+            <boxGeometry args={[5.0, 0.12, 1.2]} />
+            <meshStandardMaterial color="#1e293b" roughness={0.7} metalness={0.1} />
           </mesh>
+          {/* Array of Steel Bed Idler Rollers */}
+          {[-2.0, -1.2, -0.4, 0.4, 1.2, 2.0].map((x, i) => (
+            <mesh key={`roller-${i}`} position={[x, -0.08, 0]} rotation={[Math.PI / 2, 0, 0]} userData={{ defaultColor: '#cbd5e1' }}>
+              <cylinderGeometry args={[0.08, 0.08, 1.22, 16]} />
+              <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.1} />
+            </mesh>
+          ))}
         </group>
 
-        {/* 2. Pneumatic Diverter Arms */}
-        <group userData={{ compId: 'diverter-arm' }} position={[1.2, 0.4, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'diverter-arm')); }}>
-          <mesh rotation={[0, Math.PI / 6, 0]} userData={{ defaultColor: '#eab308' }}>
-            <boxGeometry args={[0.9, 0.28, 0.12]} />
-            <meshStandardMaterial color="#eab308" metalness={0.7} />
+        {/* 5. AUTOMATED TOTE PALLETS & OVERHEAD OPTICAL BARCODE SCANNER ARCH */}
+        <group
+          userData={{ compId: 'COMP-CNV-TOTES' }}
+          position={[0, 0, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedComponent(components.find((c) => c.id === 'COMP-CNV-TOTES'));
+          }}
+        >
+          {/* Moving Tote Box Container */}
+          <mesh ref={toteRef} position={[0, 0.32, 0]} userData={{ defaultColor: '#0284c7' }}>
+            <boxGeometry args={[0.7, 0.4, 0.8]} />
+            <meshStandardMaterial color="#0284c7" roughness={0.3} metalness={0.3} />
           </mesh>
-        </group>
 
-        {/* 3. Photoelectric Sensor Array */}
-        <group userData={{ compId: 'photoelectric-sensors' }} position={[-1.2, 0.4, 0.6]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'photoelectric-sensors')); }}>
-          <mesh userData={{ defaultColor: '#0284c7' }}>
-            <cylinderGeometry args={[0.08, 0.08, 0.55, 16]} />
-            <meshStandardMaterial color="#0284c7" emissive="#0284c7" emissiveIntensity={0.6} />
-          </mesh>
+          {/* Overhead Barcode Scanning Gantry Arch */}
+          <group position={[0, 0.8, 0]}>
+            {[-0.7, 0.7].map((z, i) => (
+              <mesh key={`arch-${i}`} position={[0, 0, z]} userData={{ defaultColor: '#475569' }}>
+                <cylinderGeometry args={[0.04, 0.04, 1.4, 12]} />
+                <meshStandardMaterial color="#475569" metalness={0.8} />
+              </mesh>
+            ))}
+            {/* Top Scanning Beam Unit */}
+            <mesh position={[0, 0.7, 0]} userData={{ defaultColor: '#a855f7' }}>
+              <boxGeometry args={[0.3, 0.15, 1.5]} />
+              <meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={0.6} />
+            </mesh>
+          </group>
         </group>
-
-        {/* 4. Variable Frequency Drive VFD */}
-        <group userData={{ compId: 'vfd-drive' }} position={[2.2, 0.6, 0.8]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'vfd-drive')); }}>
-          <mesh userData={{ defaultColor: '#1e293b' }}>
-            <boxGeometry args={[0.55, 0.85, 0.45]} />
-            <meshStandardMaterial color="#1e293b" />
-          </mesh>
-        </group>
-
-        {/* 5. Vulcanized Drive Roller */}
-        <group userData={{ compId: 'drive-roller' }} position={[-2.2, 0.2, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'drive-roller')); }}>
-          <mesh rotation={[Math.PI / 2, 0, 0]} userData={{ defaultColor: '#334155' }}>
-            <cylinderGeometry args={[0.28, 0.28, 1.2, 24]} />
-            <meshStandardMaterial color="#334155" roughness={0.3} />
-          </mesh>
-        </group>
-
-        {/* 6. Sealed Roller Bearings */}
-        <group userData={{ compId: 'roller-bearings' }} position={[-2.2, -0.4, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'roller-bearings')); }}>
-          <mesh userData={{ defaultColor: '#94a3b8' }}>
-            <boxGeometry args={[0.35, 0.35, 0.35]} />
-            <meshStandardMaterial color="#94a3b8" metalness={0.9} />
-          </mesh>
-        </group>
-
-        {/* 7. Package Barcode Scanner */}
-        <group userData={{ compId: 'package-scanner' }} position={[0, 1.6, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'package-scanner')); }}>
-          <mesh userData={{ defaultColor: '#a855f7' }}>
-            <boxGeometry args={[0.45, 0.35, 1.3]} />
-            <meshStandardMaterial color="#a855f7" metalness={0.8} />
-          </mesh>
-        </group>
-
-        {/* 8. Diverter Servo Motor */}
-        <group userData={{ compId: 'diverter-motor' }} position={[1.8, 0.4, -0.6]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'diverter-motor')); }}>
-          <mesh userData={{ defaultColor: '#0284c7' }}>
-            <cylinderGeometry args={[0.22, 0.22, 0.65, 20]} rotation={[0, 0, Math.PI / 2]} />
-            <meshStandardMaterial color="#0284c7" metalness={0.8} />
-          </mesh>
-        </group>
-
       </group>
 
       {/* HOLOGRAPHIC TWIN OVERLAY */}
       {isHologram && (
-        <HolographicTwinEngine 
+        <HolographicTwinEngine
           components={components}
           selectedComponent={selectedComponent}
           setSelectedComponent={setSelectedComponent}

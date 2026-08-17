@@ -10,14 +10,22 @@ export default function IndustrialAirCompressorModel({
   setSelectedComponent,
   isSimulatingFailure = false,
   components = [],
+  telemetry = null,
 }) {
   const groupRef = useRef(null);
   const fanRef = useRef(null);
+  const screwRef = useRef(null);
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
+    const press = telemetry?.pressure || 7.1;
+    const speedFactor = (press / 7.1) * 10.0;
+
     if (fanRef.current) {
-      fanRef.current.rotation.z += delta * 9.0;
+      fanRef.current.rotation.z += delta * speedFactor;
+    }
+    if (screwRef.current) {
+      screwRef.current.rotation.x += delta * speedFactor * 1.5;
     }
 
     if (!groupRef.current) return;
@@ -86,7 +94,7 @@ export default function IndustrialAirCompressorModel({
                   mesh.material.emissiveIntensity = 0.4;
                 }
               } else {
-                mesh.material.opacity = 0.25;
+                mesh.material.opacity = 0.3;
                 if (mesh.userData?.defaultColor) {
                   mesh.material.color.set(mesh.userData.defaultColor);
                   mesh.material.emissive.set('#000000');
@@ -97,8 +105,8 @@ export default function IndustrialAirCompressorModel({
               mesh.material.opacity = 1.0;
               if (mesh.userData?.defaultColor) {
                 mesh.material.color.set(mesh.userData.defaultColor);
-                mesh.material.emissive.set('#000000');
-                mesh.material.emissiveIntensity = 0;
+                mesh.material.emissive.set(mesh.userData?.emissive || '#000000');
+                mesh.material.emissiveIntensity = mesh.userData?.emissiveIntensity || 0;
               }
             }
           }
@@ -109,98 +117,115 @@ export default function IndustrialAirCompressorModel({
 
   return (
     <group>
-      {/* COMPRESSOR SKID BASE FRAME */}
+      {/* 1. COMPRESSOR SKID BASE FRAME */}
       <group position={[0, -0.65, 0]}>
         <mesh position={[0, 0, 0]} userData={{ defaultColor: '#1e293b' }}>
-          <boxGeometry args={[6.4, 0.15, 2.4]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.3} metalness={0.8} />
+          <boxGeometry args={[5.2, 0.2, 2.6]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.4} metalness={0.8} />
         </mesh>
       </group>
 
       <group ref={groupRef}>
-        {/* 1. 200kW Compressor Motor */}
-        <group userData={{ compId: 'compressor-motor' }} position={[-2.2, 0.4, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'compressor-motor')); }}>
-          <mesh userData={{ defaultColor: '#1e3a8a' }}>
-            <cylinderGeometry args={[0.62, 0.62, 1.5, 32]} rotation={[0, 0, Math.PI / 2]} />
-            <meshStandardMaterial color="#1e3a8a" roughness={0.3} metalness={0.8} />
+        {/* 2. 110 kW VFD INVERTER MOTOR */}
+        <group
+          userData={{ compId: 'COMP-CMP-MOTOR' }}
+          position={[-1.8, 0.5, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedComponent(components.find((c) => c.id === 'COMP-CMP-MOTOR'));
+          }}
+        >
+          <mesh rotation={[0, 0, Math.PI / 2]} userData={{ defaultColor: '#1e3a8a' }}>
+            <cylinderGeometry args={[0.6, 0.6, 1.4, 28]} />
+            <meshStandardMaterial color="#1e3a8a" roughness={0.3} metalness={0.7} />
           </mesh>
-          {/* Terminal Box */}
-          <mesh position={[0, 0.6, 0]} userData={{ defaultColor: '#1e293b' }}>
-            <boxGeometry args={[0.4, 0.3, 0.4]} />
-            <meshStandardMaterial color="#1e293b" />
-          </mesh>
-        </group>
-
-        {/* 2. Forced Air Cooling Fan */}
-        <group ref={fanRef} userData={{ compId: 'cooling-fan' }} position={[-1.0, 0.8, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'cooling-fan')); }}>
-          <mesh userData={{ defaultColor: '#0ea5e9' }}>
-            <cylinderGeometry args={[0.45, 0.45, 0.15, 16]} rotation={[Math.PI / 2, 0, 0]} />
-            <meshStandardMaterial color="#0ea5e9" metalness={0.9} />
-          </mesh>
-        </group>
-
-        {/* 3. Heavy-Duty Air Filter */}
-        <group userData={{ compId: 'air-filter' }} position={[-0.2, 1.2, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'air-filter')); }}>
-          <mesh userData={{ defaultColor: '#eab308' }}>
-            <cylinderGeometry args={[0.38, 0.38, 0.75, 24]} />
-            <meshStandardMaterial color="#eab308" roughness={0.5} />
+          {/* Terminal Junction Box */}
+          <mesh position={[0, 0.65, 0]} userData={{ defaultColor: '#1e293b' }}>
+            <boxGeometry args={[0.4, 0.25, 0.35]} />
+            <meshStandardMaterial color="#1e293b" metalness={0.7} />
           </mesh>
         </group>
 
-        {/* 4. Oil Coalescing Separator */}
-        <group userData={{ compId: 'oil-separator' }} position={[0.8, 0.4, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'oil-separator')); }}>
-          <mesh userData={{ defaultColor: '#475569' }}>
-            <cylinderGeometry args={[0.48, 0.48, 1.2, 24]} />
-            <meshStandardMaterial color="#475569" metalness={0.8} />
+        {/* 3. ASYMMETRIC TWIN HELICAL SCREW ROTORS & CASING */}
+        <group
+          userData={{ compId: 'COMP-CMP-SCREW' }}
+          position={[-0.2, 0.5, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedComponent(components.find((c) => c.id === 'COMP-CMP-SCREW'));
+          }}
+        >
+          <mesh ref={screwRef} userData={{ defaultColor: '#334155' }}>
+            <boxGeometry args={[1.4, 0.85, 0.85]} />
+            <meshStandardMaterial color="#334155" roughness={0.3} metalness={0.8} />
+          </mesh>
+          {/* Air Filter Intake Canister */}
+          <mesh position={[-0.3, 0.75, 0]} userData={{ defaultColor: '#f59e0b' }}>
+            <cylinderGeometry args={[0.32, 0.32, 0.6, 20]} />
+            <meshStandardMaterial color="#f59e0b" roughness={0.4} />
           </mesh>
         </group>
 
-        {/* 5. Rotary Screw Element */}
-        <group userData={{ compId: 'screw-element' }} position={[0, 0, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'screw-element')); }}>
-          <mesh userData={{ defaultColor: '#334155' }}>
-            <boxGeometry args={[1.3, 0.85, 0.85]} />
-            <meshStandardMaterial color="#334155" roughness={0.3} metalness={0.7} />
+        {/* 4. TANDEM ANGULAR CONTACT THRUST BEARINGS */}
+        <group
+          userData={{ compId: 'COMP-CMP-BEARING' }}
+          position={[0.6, 0.5, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedComponent(components.find((c) => c.id === 'COMP-CMP-BEARING'));
+          }}
+        >
+          <mesh rotation={[0, 0, Math.PI / 2]} userData={{ defaultColor: '#475569' }}>
+            <cylinderGeometry args={[0.36, 0.36, 0.3, 24]} />
+            <meshStandardMaterial color="#475569" metalness={0.9} roughness={0.1} />
           </mesh>
         </group>
 
-        {/* 6. High-Pressure Receiver Tank */}
-        <group userData={{ compId: 'pressure-tank' }} position={[2.0, 0, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'pressure-tank')); }}>
+        {/* 5. FORCED AIR COOLING FAN & HEAT EXCHANGER MATRIX */}
+        <group
+          ref={fanRef}
+          userData={{ compId: 'COMP-CMP-FAN' }}
+          position={[-0.8, 1.3, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedComponent(components.find((c) => c.id === 'COMP-CMP-FAN'));
+          }}
+        >
+          <mesh rotation={[Math.PI / 2, 0, 0]} userData={{ defaultColor: '#0ea5e9' }}>
+            <cylinderGeometry args={[0.48, 0.48, 0.15, 16]} />
+            <meshStandardMaterial color="#0ea5e9" metalness={0.9} roughness={0.2} />
+          </mesh>
+        </group>
+
+        {/* 6. AIR RECEIVER TANK & OIL SEPARATOR VESSEL */}
+        <group
+          userData={{ compId: 'COMP-CMP-TANK' }}
+          position={[1.7, 0.6, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedComponent(components.find((c) => c.id === 'COMP-CMP-TANK'));
+          }}
+        >
           <mesh rotation={[0, 0, Math.PI / 2]} userData={{ defaultColor: '#0284c7' }}>
-            <cylinderGeometry args={[0.75, 0.75, 1.9, 32]} />
-            <meshStandardMaterial color="#0284c7" roughness={0.3} metalness={0.6} />
+            <cylinderGeometry args={[0.7, 0.7, 1.8, 28]} />
+            <meshStandardMaterial color="#0284c7" roughness={0.3} metalness={0.65} />
           </mesh>
-          {/* ASME Nameplate & Pressure Relief Valve */}
-          <mesh position={[0, 0.8, 0]} userData={{ defaultColor: '#ef4444' }}>
-            <cylinderGeometry args={[0.1, 0.1, 0.4, 16]} />
+          {/* Safety Relief Valve */}
+          <mesh position={[0, 0.85, 0]} userData={{ defaultColor: '#ef4444' }}>
+            <cylinderGeometry args={[0.08, 0.08, 0.35, 16]} />
             <meshStandardMaterial color="#ef4444" metalness={0.9} />
           </mesh>
-        </group>
-
-        {/* 7. Heavy Thrust Bearings */}
-        <group userData={{ compId: 'thrust-bearings' }} position={[0, -0.6, 0]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'thrust-bearings')); }}>
-          <mesh userData={{ defaultColor: '#94a3b8' }}>
-            <cylinderGeometry args={[0.28, 0.28, 0.35, 20]} />
-            <meshStandardMaterial color="#94a3b8" metalness={0.9} />
+          {/* Analogue Pressure Dial Gauge */}
+          <mesh position={[0.4, 0.5, 0]} rotation={[0, Math.PI / 2, 0]} userData={{ defaultColor: '#f8fafc' }}>
+            <cylinderGeometry args={[0.12, 0.12, 0.04, 20]} />
+            <meshStandardMaterial color="#f8fafc" roughness={0.1} metalness={0.9} />
           </mesh>
         </group>
-
-        {/* 8. Xe-Series Controller Cabinet */}
-        <group userData={{ compId: 'control-cabinet-comp' }} position={[2.8, 0.4, 0.6]} onClick={(e) => { e.stopPropagation(); setSelectedComponent(components.find(c => c.id === 'control-cabinet-comp')); }}>
-          <mesh userData={{ defaultColor: '#1e293b' }}>
-            <boxGeometry args={[0.65, 1.3, 0.55]} />
-            <meshStandardMaterial color="#1e293b" />
-          </mesh>
-          <mesh position={[-0.33, 0.3, 0]} rotation={[0, -Math.PI / 2, 0]} userData={{ defaultColor: '#0284c7' }}>
-            <planeGeometry args={[0.4, 0.3]} />
-            <meshBasicMaterial color="#0284c7" />
-          </mesh>
-        </group>
-
       </group>
 
       {/* HOLOGRAPHIC TWIN OVERLAY */}
       {isHologram && (
-        <HolographicTwinEngine 
+        <HolographicTwinEngine
           components={components}
           selectedComponent={selectedComponent}
           setSelectedComponent={setSelectedComponent}

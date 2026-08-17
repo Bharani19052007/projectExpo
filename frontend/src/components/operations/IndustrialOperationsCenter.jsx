@@ -1,4 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  RotateCcw,
+  Maximize2,
+  Minimize2,
+  Sliders,
+  Layers,
+  Sparkles,
+  Factory,
+  Waves
+} from 'lucide-react';
 import PlantDigitalTwinScene from '../3d/plant/PlantDigitalTwinScene';
 import TopNavigationHub from './TopNavigationHub';
 import LeftTelemetryPanel from './LeftTelemetryPanel';
@@ -6,302 +20,252 @@ import RightIntelligencePanel from './RightIntelligencePanel';
 import BottomTelemetryBar from './BottomTelemetryBar';
 import AssetInspectionModal from './AssetInspectionModal';
 import EmergencyPlantModal from './EmergencyPlantModal';
+import HologramVibrationHUD from './HologramVibrationHUD';
 
 import {
-  initialPlantAssets,
-  initialAlarms,
-  initialWorkOrders,
   plantOverview,
+  plantAssets,
   initialProductionStats,
-  initialUtilitiesData,
+  campusBuildings,
 } from '../../data/plantAssetsData';
 
 export default function IndustrialOperationsCenter() {
-  // Master State
-  const [assets, setAssets] = useState(initialPlantAssets);
-  const [alarms, setAlarms] = useState(initialAlarms);
-  const [workOrders, setWorkOrders] = useState(initialWorkOrders);
-  const [productionStats, setProductionStats] = useState(initialProductionStats);
-  const [utilitiesData, setUtilitiesData] = useState(initialUtilitiesData);
-
-  // View & Camera Controls
-  const [viewMode, setViewMode] = useState('CAD'); // 'CAD' | 'HOLOGRAM' | 'THERMAL' | 'VIBRATION'
+  // State for Navigation & Views
+  const [viewMode, setViewMode] = useState('OVERVIEW'); // 'OVERVIEW' | 'FLOOR 1' | 'FLOOR 2' | 'FLOOR 3' | 'UTILITIES'
   const [cameraPreset, setCameraPreset] = useState('overview');
-  const [isDroneTour, setIsDroneTour] = useState(false);
-  const [isAutoRotate, setIsAutoRotate] = useState(false);
+  const [selectedBuildingId, setSelectedBuildingId] = useState(null);
+  const [selectedAssetId, setSelectedAssetId] = useState(null);
+  const [selectedComponent, setSelectedComponent] = useState(null);
+  const [hoveredAssetId, setHoveredAssetId] = useState(null);
+
+  // Dedicated Hologram Vibration View Mode
+  const [isHologramVibration, setIsHologramVibration] = useState(false);
+  const [vibrationMetric, setVibrationMetric] = useState('velocity'); // 'velocity' | 'acceleration' | 'envelope'
+  const [amplitudeScale, setAmplitudeScale] = useState(1.0);
+
+  // Panel Visibility toggles
+  const [showLeftPanel, setShowLeftPanel] = useState(true);
+  const [showRightPanel, setShowRightPanel] = useState(true);
+  const [showBottomBar, setShowBottomBar] = useState(true);
   const [showMarkers, setShowMarkers] = useState(true);
 
-  // Asset Selection & Hover
-  const [selectedAssetId, setSelectedAssetId] = useState(null);
-  const [hoveredAssetId, setHoveredAssetId] = useState(null);
-  const [inspectedAsset, setInspectedAsset] = useState(null);
+  // 360 Drone Tour & Controls
+  const [isDroneTour, setIsDroneTour] = useState(false);
+  const [fitTrigger, setFitTrigger] = useState(0);
 
-  // Emergency Modal
-  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
+  // Modals
+  const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
+  const [activeBottomTab, setActiveBottomTab] = useState('Operations Center');
 
-  // Simulation Stream Engine
-  const [isSimulating, setIsSimulating] = useState(true);
+  // Active Assets lookup
+  const selectedAsset = plantAssets.find((a) => a.id === selectedAssetId) || null;
+  const hoveredAsset = plantAssets.find((a) => a.id === hoveredAssetId) || null;
 
-  // Selected asset object helper
-  const selectedAsset = assets.find((a) => a.id === selectedAssetId) || null;
-  const hoveredAsset = assets.find((a) => a.id === hoveredAssetId) || null;
+  // Handlers
+  const handleSelectAsset = useCallback((assetId) => {
+    setSelectedAssetId(assetId);
+    setSelectedComponent(null);
+    if (isDroneTour) setIsDroneTour(false);
 
-  // Handle Asset Click / Inspection
-  const handleSelectAsset = useCallback(
-    (assetId) => {
-      setSelectedAssetId(assetId);
-      const found = assets.find((a) => a.id === assetId);
-      if (found) {
-        setInspectedAsset(found);
-        setIsDroneTour(false);
-      }
-    },
-    [assets]
-  );
+    // Auto-select associated building if any
+    const asset = plantAssets.find((a) => a.id === assetId);
+    if (asset?.buildingId) {
+      setSelectedBuildingId(asset.buildingId);
+    }
+  }, [isDroneTour]);
 
-  // Handle Sector Navigation from Left Panel
-  const handleSelectSector = (sectorId) => {
+  const handleSelectBuilding = useCallback((buildingId) => {
+    setSelectedBuildingId(buildingId);
     setSelectedAssetId(null);
-    setInspectedAsset(null);
-    setCameraPreset(sectorId);
-  };
+    setSelectedComponent(null);
+    if (isDroneTour) setIsDroneTour(false);
+  }, [isDroneTour]);
 
-  // Real-time IIoT Simulation Interval (100Hz micro-fluctuations)
-  useEffect(() => {
-    if (!isSimulating) return;
+  const handleSelectSector = useCallback((preset) => {
+    setCameraPreset(preset);
+    setSelectedAssetId(null);
+    setSelectedComponent(null);
+    if (isDroneTour) setIsDroneTour(false);
+  }, [isDroneTour]);
 
-    const timer = setInterval(() => {
-      setAssets((prevAssets) =>
-        prevAssets.map((asset) => {
-          const updatedSensors = asset.sensors?.map((sensor) => {
-            const delta =
-              (Math.random() - 0.5) *
-              (sensor.unit === '°C' ? 0.5 : sensor.unit === 'mm/s' ? 0.05 : 1.0);
-            let val = Number((sensor.value + delta).toFixed(1));
-            if (sensor.min !== undefined && val < sensor.min) val = sensor.min;
-            if (sensor.max !== undefined && val > sensor.max) val = sensor.max;
-            return { ...sensor, value: val };
-          });
-
-          let updatedPrimary = asset.primaryMetric;
-          if (updatedSensors && updatedSensors.length > 0) {
-            updatedPrimary = {
-              ...asset.primaryMetric,
-              value: updatedSensors[0].value,
-            };
-          }
-
-          return {
-            ...asset,
-            sensors: updatedSensors,
-            primaryMetric: updatedPrimary,
-          };
-        })
-      );
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isSimulating]);
-
-  // Keep inspected asset updated in real-time
-  useEffect(() => {
-    if (inspectedAsset) {
-      const updated = assets.find((a) => a.id === inspectedAsset.id);
-      if (updated) setInspectedAsset(updated);
+  const handleChangeViewMode = useCallback((mode) => {
+    setViewMode(mode);
+    if (mode === 'OVERVIEW') {
+      setSelectedBuildingId(null);
+      setSelectedAssetId(null);
+      setSelectedComponent(null);
+      setCameraPreset('overview');
+    } else if (mode === 'UTILITIES') {
+      setCameraPreset('utilities');
+      setSelectedBuildingId('BLD-UTIL-05');
+    } else if (mode === 'FLOOR 1') {
+      setCameraPreset('production_hall');
+      setSelectedBuildingId('BLD-PROD-01');
     }
-  }, [assets]);
+  }, []);
 
-  // Alarm & Maintenance Handlers
-  const handleResolveAlarm = (alarmId) => {
-    setAlarms((prev) => prev.filter((a) => a.id !== alarmId));
-    const alarm = alarms.find((a) => a.id === alarmId);
-    if (alarm) {
-      setAssets((prev) =>
-        prev.map((asset) =>
-          asset.id === alarm.assetId
-            ? { ...asset, status: 'RUNNING', healthScore: Math.min(98, asset.healthScore + 15) }
-            : asset
-        )
-      );
-    }
-  };
-
-  const handleCreateWorkOrder = (newWO) => {
-    setWorkOrders((prev) => [newWO, ...prev]);
-  };
-
-  const handleUpdateSetpoint = (assetId, newSetpoint) => {
-    setAssets((prev) =>
-      prev.map((asset) =>
-        asset.id === assetId
-          ? {
-              ...asset,
-              primaryMetric: { ...asset.primaryMetric, value: newSetpoint },
-            }
-          : asset
-      )
-    );
-  };
-
-  const handleCalibrateSensors = (assetId) => {
-    setAssets((prev) =>
-      prev.map((asset) =>
-        asset.id === assetId
-          ? {
-              ...asset,
-              status: 'RUNNING',
-              healthScore: 99,
-              anomalyProbability: 2.1,
-            }
-          : asset
-      )
-    );
-  };
-
-  const handleTriggerLocalEStop = (assetId) => {
-    setAssets((prev) =>
-      prev.map((asset) =>
-        asset.id === assetId
-          ? {
-              ...asset,
-              status: 'CRITICAL',
-              healthScore: 0,
-            }
-          : asset
-      )
-    );
-    setAlarms((prev) => [
-      {
-        id: `ALM-ESTOP-${Date.now()}`,
-        assetId,
-        assetTag: assetId,
-        severity: 'CRITICAL',
-        message: `Local emergency stop executed on ${assetId}. Machine isolated.`,
-        time: new Date().toTimeString().substring(0, 8),
-      },
-      ...prev,
-    ]);
-  };
-
-  const handleConfirmEmergencyShutdown = () => {
-    setAssets((prev) =>
-      prev.map((asset) => ({
-        ...asset,
-        status: 'EMERGENCY',
-        healthScore: 20,
-      }))
-    );
-    setAlarms((prev) => [
-      {
-        id: `ALM-ESD-${Date.now()}`,
-        assetId: 'PLANT-WIDE',
-        assetTag: 'ESD-SIL-3',
-        severity: 'EMERGENCY',
-        message: 'PLANT-WIDE EMERGENCY TRIP SEQUENCE ACTIVATED. All processes isolated.',
-        time: new Date().toTimeString().substring(0, 8),
-      },
-      ...prev,
-    ]);
-  };
-
-  // Overall facility health score
-  const overallHealth = Number(
-    (
-      assets.reduce((sum, asset) => sum + (asset.healthScore || 90), 0) /
-      (assets.length || 1)
-    ).toFixed(1)
-  );
+  const handleResetCamera = useCallback(() => {
+    setCameraPreset('overview');
+    setSelectedBuildingId(null);
+    setSelectedAssetId(null);
+    setSelectedComponent(null);
+    setIsDroneTour(false);
+    setViewMode('OVERVIEW');
+    setFitTrigger((prev) => prev + 1);
+  }, []);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden select-none bg-[#f5f9ff]">
-      {/* 1. Full-Screen 3D Smart Factory Digital Twin with Daylight Atmosphere */}
+    <div className={`relative w-full h-screen overflow-hidden select-none font-sans ${isHologramVibration ? 'bg-[#020617]' : 'bg-[#e4f1fd]'}`}>
+      {/* 1. Master 3D Plant, Machine & Hologram Vibration Digital Twin Scene */}
       <div className="absolute inset-0 z-0">
         <PlantDigitalTwinScene
-          assets={assets}
+          assets={plantAssets}
           selectedAsset={selectedAsset}
+          selectedComponent={selectedComponent}
           onSelectAsset={handleSelectAsset}
+          onSelectComponent={setSelectedComponent}
           hoveredAsset={hoveredAsset}
           onHoverAsset={setHoveredAssetId}
+          selectedBuildingId={selectedBuildingId}
+          onSelectBuilding={handleSelectBuilding}
           viewMode={viewMode}
           cameraPreset={cameraPreset}
           showMarkers={showMarkers}
           isDroneTour={isDroneTour}
-          isAutoRotate={isAutoRotate}
+          fitTrigger={fitTrigger}
+          isHologramVibration={isHologramVibration}
+          vibrationMetric={vibrationMetric}
+          amplitudeScale={amplitudeScale}
         />
       </div>
 
-      {/* 2. Top Navigation Hub (White Glass Bar) */}
+      {/* 2. Top Navigation Header with Dedicated Separate Twin View Options */}
       <TopNavigationHub
         plantOverview={plantOverview}
         viewMode={viewMode}
-        onChangeViewMode={setViewMode}
+        onChangeViewMode={handleChangeViewMode}
         cameraPreset={cameraPreset}
-        onChangeCameraPreset={(preset) => {
-          setSelectedAssetId(null);
-          setInspectedAsset(null);
-          setCameraPreset(preset);
-        }}
+        onChangeCameraPreset={handleSelectSector}
         isDroneTour={isDroneTour}
-        onToggleDroneTour={() => {
-          setIsDroneTour(!isDroneTour);
-          setSelectedAssetId(null);
-          setInspectedAsset(null);
-        }}
-        isAutoRotate={isAutoRotate}
-        onToggleAutoRotate={() => setIsAutoRotate(!isAutoRotate)}
-        isSimulating={isSimulating}
-        onToggleSimulation={() => setIsSimulating(!isSimulating)}
-        overallHealth={overallHealth}
-        activeAlertCount={alarms.length}
+        onToggleDroneTour={() => setIsDroneTour(!isDroneTour)}
+        onResetCamera={handleResetCamera}
+        overallHealth={plantOverview.overallHealth}
+        activeAlertCount={12}
+        onOpenEmergencyModal={() => setIsEmergencyOpen(true)}
+        isHologramVibration={isHologramVibration}
+        onToggleHologramVibration={setIsHologramVibration}
       />
 
-      {/* 3. Left Panel (Plant Health, KPIs, Sectors Cards) */}
-      <LeftTelemetryPanel
-        assets={assets}
-        selectedAsset={selectedAsset}
-        onSelectAsset={handleSelectAsset}
-        onSelectSector={handleSelectSector}
-        productionStats={productionStats}
-        utilitiesData={utilitiesData}
-      />
-
-      {/* 4. Right Panel (AI Predictive Intelligence, Alerts, Plant Summary Donut Gauges) */}
-      <RightIntelligencePanel
-        alarms={alarms}
-        workOrders={workOrders}
-        selectedAsset={selectedAsset}
-        onSelectAsset={handleSelectAsset}
-        onResolveAlarm={handleResolveAlarm}
-        onCreateWorkOrder={handleCreateWorkOrder}
-      />
-
-      {/* 5. Bottom HUD: Live Process Trends Card & Quick Stats Footer Bar */}
-      <BottomTelemetryBar
-        productionStats={productionStats}
-        utilitiesData={utilitiesData}
-      />
-
-      {/* 6. Interactive Asset Inspection Modal */}
-      {inspectedAsset && (
-        <AssetInspectionModal
-          asset={inspectedAsset}
-          onClose={() => {
-            setInspectedAsset(null);
-            setSelectedAssetId(null);
-          }}
-          onUpdateSetpoint={handleUpdateSetpoint}
-          onTriggerLocalEStop={handleTriggerLocalEStop}
-          onCalibrateSensors={handleCalibrateSensors}
-          onCreateWorkOrder={handleCreateWorkOrder}
+      {/* 3. Hologram Vibration Control HUD (Visible in Vibration Mode) */}
+      {isHologramVibration && (
+        <HologramVibrationHUD
+          activeMetric={vibrationMetric}
+          onChangeMetric={setVibrationMetric}
+          amplitudeScale={amplitudeScale}
+          onChangeAmplitudeScale={setAmplitudeScale}
+          onExitHologram={() => setIsHologramVibration(false)}
         />
       )}
 
-      {/* 7. Plant-Wide Emergency ESD Modal */}
-      <EmergencyPlantModal
-        isOpen={isEmergencyModalOpen}
-        onClose={() => setIsEmergencyModalOpen(false)}
-        onConfirmEmergencyShutdown={handleConfirmEmergencyShutdown}
-      />
+      {/* 4. Floating Quick Switcher Pill (Top Right Area) */}
+      <div className="absolute top-[68px] right-6 z-30 pointer-events-auto flex items-center gap-1.5 p-1 rounded-2xl bg-black/40 backdrop-blur-md border border-white/20 shadow-xl">
+        <button
+          onClick={() => setIsHologramVibration(false)}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+            !isHologramVibration
+              ? 'bg-[#1976d2] text-white shadow-sm'
+              : 'text-white/80 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <Factory className="w-3.5 h-3.5" />
+          <span>Realistic 3D Factory</span>
+        </button>
+        <button
+          onClick={() => setIsHologramVibration(true)}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+            isHologramVibration
+              ? 'bg-[#00c2ff] text-[#020617] shadow-sm font-extrabold'
+              : 'text-white/80 hover:text-[#00c2ff] hover:bg-white/10'
+          }`}
+        >
+          <Waves className="w-3.5 h-3.5" />
+          <span>Hologram Vibration</span>
+        </button>
+      </div>
+
+      {/* 5. Left Telemetry & Sectors Panel */}
+      {showLeftPanel && (
+        <LeftTelemetryPanel
+          selectedSector={cameraPreset}
+          onSelectSector={handleSelectSector}
+          selectedBuildingId={selectedBuildingId}
+          onSelectBuilding={handleSelectBuilding}
+        />
+      )}
+
+      {/* Left Panel Toggle Button */}
+      <button
+        onClick={() => setShowLeftPanel(!showLeftPanel)}
+        className="absolute left-2 top-1/2 -translate-y-1/2 z-40 bg-white/90 hover:bg-white border border-[#d8e6ff] p-1.5 rounded-r-xl shadow-md text-[#1976d2] transition-all"
+        title={showLeftPanel ? 'Collapse Left Panel' : 'Expand Left Panel'}
+      >
+        {showLeftPanel ? (
+          <ChevronLeft className="w-4 h-4" />
+        ) : (
+          <ChevronRight className="w-4 h-4" />
+        )}
+      </button>
+
+      {/* 6. Right AI Predictive Intelligence Panel */}
+      {showRightPanel && (
+        <RightIntelligencePanel
+          onSelectAsset={handleSelectAsset}
+          onResolveAlarm={(id) => console.log('Resolved alarm:', id)}
+          onCreateWorkOrder={(assetId) => handleSelectAsset(assetId)}
+        />
+      )}
+
+      {/* Right Panel Toggle Button */}
+      <button
+        onClick={() => setShowRightPanel(!showRightPanel)}
+        className="absolute right-2 top-1/2 -translate-y-1/2 z-40 bg-white/90 hover:bg-white border border-[#d8e6ff] p-1.5 rounded-l-xl shadow-md text-[#1976d2] transition-all"
+        title={showRightPanel ? 'Collapse Right Panel' : 'Expand Right Panel'}
+      >
+        {showRightPanel ? (
+          <ChevronRight className="w-4 h-4" />
+        ) : (
+          <ChevronLeft className="w-4 h-4" />
+        )}
+      </button>
+
+      {/* 7. Bottom Live Process Waveforms & Navigation Bar */}
+      {showBottomBar && (
+        <BottomTelemetryBar
+          productionStats={initialProductionStats}
+          activeTab={activeBottomTab}
+          onTabChange={setActiveBottomTab}
+        />
+      )}
+
+      {/* 8. Machine & Component-Level Digital Twin Modal / Drawer */}
+      {selectedAsset && (
+        <AssetInspectionModal
+          asset={selectedAsset}
+          selectedComponent={selectedComponent}
+          onSelectComponent={setSelectedComponent}
+          onClose={() => {
+            setSelectedAssetId(null);
+            setSelectedComponent(null);
+          }}
+        />
+      )}
+
+      {/* 9. Emergency Response Modal */}
+      {isEmergencyOpen && (
+        <EmergencyPlantModal
+          onClose={() => setIsEmergencyOpen(false)}
+        />
+      )}
     </div>
   );
 }

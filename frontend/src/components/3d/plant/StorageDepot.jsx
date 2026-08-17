@@ -48,9 +48,10 @@ export default function StorageDepot({
       );
     }
 
-    const baseColor = isSelected ? '#00e5ff' : isHovered ? '#4fc3f7' : defaultColor;
-    const emissive = isSelected ? '#00e5ff' : isHovered ? '#0284c7' : '#041d48';
-    const emissiveIntensity = isSelected ? 0.9 : isHovered ? 0.5 : 0.16;
+    // Realistic CAD mode — metallic storage equipment colors, no idle blue glow
+    const baseColor = isSelected ? '#00e5ff' : isHovered ? '#b0cfe8' : defaultColor;
+    const emissive = isSelected ? '#00e5ff' : isHovered ? '#4fc3f7' : '#000000';
+    const emissiveIntensity = isSelected ? 0.75 : isHovered ? 0.22 : 0.0;
 
     return (
       <meshStandardMaterial

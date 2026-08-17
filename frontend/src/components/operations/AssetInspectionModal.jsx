@@ -2,370 +2,343 @@ import React, { useState } from 'react';
 import {
   X,
   Activity,
-  BrainCircuit,
-  Sliders,
-  FileText,
-  ShieldAlert,
-  RotateCcw,
+  Shield,
+  AlertTriangle,
+  Clock,
+  Wrench,
   Sparkles,
+  ChevronRight,
+  Sliders,
+  Play,
+  RotateCcw,
   CheckCircle2,
-  Wrench
+  Layers,
+  Thermometer,
+  Gauge,
+  Zap,
+  Settings,
+  Cpu
 } from 'lucide-react';
 
 export default function AssetInspectionModal({
   asset,
+  selectedComponent,
+  onSelectComponent,
   onClose,
-  onUpdateSetpoint,
-  onTriggerLocalEStop,
-  onCalibrateSensors,
-  onCreateWorkOrder,
 }) {
-  const [activeTab, setActiveTab] = useState('TELEMETRY');
-  const [targetSetpoint, setTargetSetpoint] = useState(
-    asset?.primaryMetric?.value || 100
-  );
-  const [isCalibrating, setIsCalibrating] = useState(false);
-
   if (!asset) return null;
 
-  const isCritical = asset.status === 'CRITICAL' || asset.status === 'EMERGENCY';
-  const isWarning = asset.status === 'WARNING' || asset.status === 'DEGRADED';
+  const [activeTab, setActiveTab] = useState('components'); // 'components' | 'telemetry' | 'ai' | 'controls'
+  const [speedSetpoint, setSpeedSetpoint] = useState(asset.speedRpm || 1250);
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [showToast, setShowToast] = useState(null);
 
-  const handleCalibrate = () => {
+  const activeComp =
+    selectedComponent || (asset.components && asset.components[0]) || null;
+
+  const handleCreateWO = () => {
+    setShowToast(`Work order generated for ${asset.name} - ${activeComp?.name || 'Inspection'}`);
+    setTimeout(() => setShowToast(null), 3500);
+  };
+
+  const handleRunCalibration = () => {
     setIsCalibrating(true);
     setTimeout(() => {
       setIsCalibrating(false);
-      onCalibrateSensors?.(asset.id);
-    }, 1000);
+      setShowToast(`AI self-test & calibration completed successfully for ${asset.name}`);
+      setTimeout(() => setShowToast(null), 3500);
+    }, 1800);
   };
 
   return (
-    <div className="fixed inset-0 z-50 pointer-events-auto flex items-center justify-end p-4 bg-slate-900/30 backdrop-blur-xs animate-in fade-in duration-200">
-      {/* Main White Glassmorphism Modal */}
-      <div className="w-full max-w-2xl h-[90vh] glass-card-white rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300 border border-[#d8e6ff]">
-        {/* Header Bar */}
-        <div className="p-4 border-b border-[#edf4ff] bg-white flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-3 h-3 rounded-full ${
-                isCritical ? 'bg-[#ef4444]' : isWarning ? 'bg-[#f59e0b]' : 'bg-[#22c55e]'
-              }`}
-            />
+    <div className="fixed inset-y-0 right-0 w-[520px] bg-white/95 backdrop-blur-xl border-l border-[#d8e6ff] shadow-2xl z-50 flex flex-col font-sans select-none animate-in slide-in-from-right duration-250">
+      {/* Toast alert */}
+      {showToast && (
+        <div className="absolute top-4 left-4 right-4 bg-[#0f172a] text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-xl border border-[#38bdf8] flex items-center gap-2 z-50 animate-bounce">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{showToast}</span>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-[#edf4ff] flex items-center justify-between bg-[#f8faff]/80">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-[#edf4ff] text-[#1976d2] border border-[#d8e6ff]">
+            <Cpu className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-extrabold text-[#0f172a]">
+                {asset.name}
+              </h2>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                {asset.status}
+              </span>
+            </div>
+            <p className="text-xs text-[#64748b] font-medium">
+              {asset.displayName}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="p-2 rounded-xl text-[#64748b] hover:text-[#0f172a] hover:bg-[#edf4ff] transition-all"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Machine Quick Stats */}
+      <div className="px-6 py-3 bg-[#edf4ff]/50 border-b border-[#edf4ff] grid grid-cols-4 gap-2 text-center text-xs">
+        <div className="bg-white p-2 rounded-xl border border-[#d8e6ff]">
+          <span className="text-[10px] font-bold text-[#64748b] block">HEALTH</span>
+          <span className="text-sm font-extrabold text-emerald-600">
+            {asset.healthScore}%
+          </span>
+        </div>
+        <div className="bg-white p-2 rounded-xl border border-[#d8e6ff]">
+          <span className="text-[10px] font-bold text-[#64748b] block">TEMP</span>
+          <span className="text-sm font-extrabold text-[#0f172a]">
+            {asset.temperature} {asset.tempUnit || '°C'}
+          </span>
+        </div>
+        <div className="bg-white p-2 rounded-xl border border-[#d8e6ff]">
+          <span className="text-[10px] font-bold text-[#64748b] block">VIBRATION</span>
+          <span className="text-sm font-extrabold text-[#0f172a]">
+            {asset.vibration} {asset.vibUnit || 'mm/s'}
+          </span>
+        </div>
+        <div className="bg-white p-2 rounded-xl border border-[#d8e6ff]">
+          <span className="text-[10px] font-bold text-[#64748b] block">AI RUL</span>
+          <span className="text-sm font-extrabold text-[#1976d2]">
+            {asset.rulDays}d
+          </span>
+        </div>
+      </div>
+
+      {/* Nav Tabs */}
+      <div className="px-6 border-b border-[#edf4ff] flex gap-4 bg-white">
+        {[
+          { id: 'components', label: 'Component Twins' },
+          { id: 'telemetry', label: 'Sensors & Telemetry' },
+          { id: 'ai', label: 'AI Diagnostics' },
+          { id: 'controls', label: 'Setpoints & Actuation' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`py-2.5 text-xs font-bold border-b-2 transition-all ${
+              activeTab === tab.id
+                ? 'border-[#1976d2] text-[#1976d2]'
+                : 'border-transparent text-[#64748b] hover:text-[#0f172a]'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+        {/* ======================================================== */}
+        {/* TAB 1: COMPONENT DIGITAL TWINS */}
+        {/* ======================================================== */}
+        {activeTab === 'components' && (
+          <div className="space-y-4">
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold font-sans text-[#1e293b] tracking-tight">
-                  {asset.name}
-                </h2>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#edf4ff] text-[#1e88e5] border border-[#d8e6ff]">
-                  {asset.tag || asset.id}
-                </span>
-              </div>
-              <div className="text-xs font-sans text-[#64748b] mt-0.5">
-                {asset.category} • Zone: {asset.zone || 'Refinery Complex'}
+              <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider block mb-2">
+                INTERNAL MACHINE SUB-COMPONENTS (5-LEVEL DIGITAL TWIN)
+              </span>
+
+              <div className="space-y-2">
+                {asset.components?.map((comp) => {
+                  const isSelected = activeComp?.id === comp.id;
+                  const isWarning = comp.status === 'WARNING' || comp.aiRisk === 'MEDIUM' || comp.aiRisk === 'HIGH';
+
+                  return (
+                    <div
+                      key={comp.id}
+                      onClick={() => onSelectComponent?.(comp)}
+                      className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#edf4ff] border-[#1976d2] shadow-sm'
+                          : 'bg-white hover:bg-[#f8faff] border-[#d8e6ff]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-extrabold text-[#0f172a]">
+                          {comp.name}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            isWarning
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-emerald-100 text-emerald-700'
+                          }`}
+                        >
+                          {comp.health}% Health
+                        </span>
+                      </div>
+
+                      <div className="text-[11px] text-[#64748b] mb-2">
+                        {comp.type} • RUL: {comp.rulDays} days • Risk: {comp.aiRisk}
+                      </div>
+
+                      {/* Component Live Telemetry */}
+                      <div className="grid grid-cols-2 gap-2 text-[11px] bg-white/70 p-2 rounded-xl border border-[#edf4ff]">
+                        <div>
+                          <span className="text-[#64748b]">Temp:</span>{' '}
+                          <span className="font-bold text-[#0f172a]">
+                            {comp.temp} °C
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[#64748b]">Vibration:</span>{' '}
+                          <span className="font-bold text-[#0f172a]">
+                            {comp.vibration} mm/s
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* AI Component Recommendation */}
+                      {comp.recommendation && (
+                        <div className="mt-2 text-[11px] text-[#1976d2] bg-[#edf4ff]/60 p-2 rounded-xl border border-[#d8e6ff] flex items-start gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                          <span>{comp.recommendation}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
+        )}
 
-          <div className="flex items-center gap-3">
-            <div className="text-right font-sans">
-              <div className="text-[10px] text-[#94a3b8] uppercase font-semibold">Health Score</div>
-              <div
-                className={`text-sm font-bold ${
-                  isCritical ? 'text-[#ef4444]' : isWarning ? 'text-[#f59e0b]' : 'text-[#1e88e5]'
-                }`}
-              >
-                {asset.healthScore}%
+        {/* ======================================================== */}
+        {/* TAB 2: SENSORS & TELEMETRY */}
+        {/* ======================================================== */}
+        {activeTab === 'telemetry' && (
+          <div className="space-y-4">
+            <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider block">
+              IIOT SENSOR CHANNELS & TELEMETRY
+            </span>
+
+            <div className="space-y-2">
+              {asset.sensors?.map((sensor) => (
+                <div
+                  key={sensor.id}
+                  className="p-3 rounded-2xl bg-white border border-[#d8e6ff] flex items-center justify-between"
+                >
+                  <div>
+                    <div className="text-xs font-bold text-[#0f172a]">
+                      {sensor.name}
+                    </div>
+                    <div className="text-[10px] font-mono text-[#64748b]">
+                      {sensor.id}
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="text-sm font-extrabold text-[#0f172a]">
+                      {sensor.value} {sensor.unit}
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-600">
+                      {sensor.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* TAB 3: AI DIAGNOSTICS */}
+        {/* ======================================================== */}
+        {activeTab === 'ai' && (
+          <div className="space-y-4">
+            <div className="p-4 rounded-2xl bg-[#edf4ff] border border-[#d8e6ff]">
+              <div className="flex items-center gap-2 mb-2 text-[#1976d2] font-bold text-xs">
+                <Sparkles className="w-4 h-4" />
+                <span>AI PREDICTIVE DIAGNOSIS</span>
               </div>
+              <p className="text-xs text-[#0f172a] leading-relaxed">
+                {asset.aiDiagnosis}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200">
+              <div className="flex items-center gap-2 mb-2 text-emerald-700 font-bold text-xs">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>RECOMMENDED ACTION</span>
+              </div>
+              <p className="text-xs text-emerald-900 leading-relaxed">
+                {asset.aiRecommendation}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* TAB 4: CONTROLS & SETPOINTS */}
+        {/* ======================================================== */}
+        {activeTab === 'controls' && (
+          <div className="space-y-4">
+            <div className="p-4 rounded-2xl bg-white border border-[#d8e6ff] space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-[#0f172a]">Speed Setpoint</span>
+                <span className="text-[#1976d2] font-mono">{speedSetpoint} RPM</span>
+              </div>
+              <input
+                type="range"
+                min="500"
+                max="3000"
+                step="50"
+                value={speedSetpoint}
+                onChange={(e) => setSpeedSetpoint(Number(e.target.value))}
+                className="w-full h-2 bg-[#edf4ff] rounded-lg appearance-none cursor-pointer accent-[#1976d2]"
+              />
             </div>
 
             <button
-              onClick={onClose}
-              className="p-2 rounded-xl bg-[#f8faff] hover:bg-[#edf4ff] text-[#64748b] hover:text-[#1e293b] border border-[#d8e6ff] transition-all"
+              onClick={handleRunCalibration}
+              disabled={isCalibrating}
+              className="w-full py-2.5 rounded-xl bg-[#1976d2] hover:bg-[#1565c0] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
             >
-              <X className="w-5 h-5" />
+              {isCalibrating ? (
+                <>
+                  <Activity className="w-4 h-4 animate-spin" />
+                  <span>Calibrating Sensors & Spindle...</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4" />
+                  <span>Run AI Self-Diagnostic Test</span>
+                </>
+              )}
             </button>
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Navigation Tabs */}
-        <div className="grid grid-cols-4 gap-1 p-2 bg-[#f8faff] border-b border-[#edf4ff]">
-          {[
-            { id: 'TELEMETRY', label: 'TELEMETRY', icon: Activity },
-            { id: 'AI_PREDICT', label: 'AI DIAGNOSTIC', icon: BrainCircuit },
-            { id: 'CONTROLS', label: 'CONTROLS', icon: Sliders },
-            { id: 'SPECS', label: 'EQUIPMENT', icon: FileText },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                  isActive
-                    ? 'bg-white text-[#1e88e5] shadow-xs border border-[#d8e6ff]'
-                    : 'text-[#64748b] hover:text-[#1e293b]'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+      {/* Footer Actions */}
+      <div className="p-6 border-t border-[#edf4ff] bg-[#f8faff] flex items-center gap-3">
+        <button
+          onClick={handleCreateWO}
+          className="flex-1 py-2.5 rounded-xl bg-[#1976d2] hover:bg-[#1565c0] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
+        >
+          <Wrench className="w-4 h-4" />
+          <span>Generate Work Order</span>
+        </button>
 
-        {/* Tab Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-white">
-          {/* 1. Telemetry */}
-          {activeTab === 'TELEMETRY' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                {asset.sensors?.map((sensor, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 bg-[#f8faff] rounded-xl space-y-2 border border-[#e8f1ff]"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#475569]">
-                        {sensor.name}
-                      </span>
-                      <span
-                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                          sensor.status === 'CRITICAL'
-                            ? 'bg-[#fee2e2] text-[#b91c1c]'
-                            : sensor.status === 'WARNING'
-                            ? 'bg-[#fef3c7] text-[#b45309]'
-                            : 'bg-[#dcfce7] text-[#15803d]'
-                        }`}
-                      >
-                        {sensor.status || 'NORMAL'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-xl font-black text-[#1e293b]">
-                        {sensor.value}
-                      </span>
-                      <span className="text-xs font-medium text-[#64748b]">{sensor.unit}</span>
-                    </div>
-
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[9px] font-mono text-[#94a3b8]">
-                        <span>Min: {sensor.min || 0}</span>
-                        <span>Max: {sensor.max || 100}</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-[#e2edff] rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-[#1e88e5]"
-                          style={{
-                            width: `${Math.min(
-                              100,
-                              Math.max(
-                                10,
-                                (((sensor.value || 50) - (sensor.min || 0)) /
-                                  ((sensor.max || 100) - (sensor.min || 0))) *
-                                  100
-                              )
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Time Series Real-Time Waveform */}
-              <div className="p-4 bg-[#f8faff] rounded-xl space-y-2 border border-[#e8f1ff]">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="text-[#1e293b]">REAL-TIME OSCILLATION BUFFER (20s)</span>
-                  <span className="text-[#1e88e5]">100Hz SAMPLING</span>
-                </div>
-
-                <div className="h-28 w-full bg-white rounded-xl p-2 flex items-center justify-center relative overflow-hidden border border-[#d8e6ff]">
-                  <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 40">
-                    <defs>
-                      <linearGradient id="modalLightWave" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#1e88e5" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#1e88e5" stopOpacity="0.0" />
-                      </linearGradient>
-                    </defs>
-                    <line x1="0" y1="10" x2="100" y2="10" stroke="#e2edff" strokeWidth="0.8" strokeDasharray="2 2" />
-                    <line x1="0" y1="20" x2="100" y2="20" stroke="#e2edff" strokeWidth="0.8" strokeDasharray="2 2" />
-                    <line x1="0" y1="30" x2="100" y2="30" stroke="#e2edff" strokeWidth="0.8" strokeDasharray="2 2" />
-                    <path
-                      d="M 0 20 Q 10 8, 20 20 T 40 20 T 60 14 T 80 26 T 100 20 L 100 40 L 0 40 Z"
-                      fill="url(#modalLightWave)"
-                    />
-                    <path
-                      d="M 0 20 Q 10 8, 20 20 T 40 20 T 60 14 T 80 26 T 100 20"
-                      fill="none"
-                      stroke="#1e88e5"
-                      strokeWidth="1.8"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 2. AI Diagnostics */}
-          {activeTab === 'AI_PREDICT' && (
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl border border-[#d8e6ff] bg-[#f8faff]">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-xs font-bold text-[#1e293b]">
-                    <BrainCircuit className="w-4 h-4 text-[#1e88e5]" />
-                    PREDICTIVE FAILURE RISK
-                  </span>
-                  <span className="text-sm font-black text-[#dc2626]">
-                    {asset.anomalyProbability || 12}% RISK
-                  </span>
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-3 font-sans">
-                  <div className="bg-white p-2.5 rounded-lg border border-[#e2edff]">
-                    <div className="text-[10px] text-[#64748b]">Remaining Useful Life</div>
-                    <div className="text-sm font-bold text-[#1e88e5]">
-                      {asset.rul || '2,400 hours'}
-                    </div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-[#e2edff]">
-                    <div className="text-[10px] text-[#64748b]">AI Confidence</div>
-                    <div className="text-sm font-bold text-[#15803d]">99.2%</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Prescriptive Recommendations */}
-              <div className="p-4 rounded-xl border border-[#d8e6ff] bg-[#f8faff] space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-[#1e88e5] uppercase">
-                  <Sparkles className="w-4 h-4" />
-                  AI Prescriptive Recommendations
-                </div>
-
-                <div className="space-y-2 text-xs text-[#334155]">
-                  <div className="flex items-start gap-2 p-2 rounded-lg bg-white border border-[#e2edff]">
-                    <CheckCircle2 className="w-4 h-4 text-[#16a34a] shrink-0 mt-0.5" />
-                    <span>Schedule ultrasonic acoustic scan during upcoming Alpha shift.</span>
-                  </div>
-                  <div className="flex items-start gap-2 p-2 rounded-lg bg-white border border-[#e2edff]">
-                    <CheckCircle2 className="w-4 h-4 text-[#16a34a] shrink-0 mt-0.5" />
-                    <span>Verify lubrication oil viscosity and particle contamination filter.</span>
-                  </div>
-                  <div className="flex items-start gap-2 p-2 rounded-lg bg-white border border-[#e2edff]">
-                    <CheckCircle2 className="w-4 h-4 text-[#16a34a] shrink-0 mt-0.5" />
-                    <span>Auto-derate operational setpoint by 10% if temperature exceeds threshold.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 3. Controls */}
-          {activeTab === 'CONTROLS' && (
-            <div className="space-y-4">
-              <div className="p-4 bg-[#f8faff] border border-[#d8e6ff] rounded-xl space-y-3">
-                <div className="flex items-center justify-between text-xs font-bold text-[#1e293b]">
-                  <span>OPERATIONAL SETPOINT TARGET</span>
-                  <span className="text-[#1e88e5]">
-                    {targetSetpoint} {asset.primaryMetric?.unit || 'RPM'}
-                  </span>
-                </div>
-
-                <input
-                  type="range"
-                  min="0"
-                  max="5000"
-                  value={targetSetpoint}
-                  onChange={(e) => setTargetSetpoint(Number(e.target.value))}
-                  className="w-full accent-[#1e88e5] cursor-pointer"
-                />
-
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => onUpdateSetpoint?.(asset.id, targetSetpoint)}
-                    className="px-4 py-2 bg-[#1e88e5] hover:bg-[#1565c0] text-white text-xs font-bold rounded-xl shadow-xs transition-all"
-                  >
-                    Apply New Setpoint
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={handleCalibrate}
-                  disabled={isCalibrating}
-                  className="p-3 bg-[#f8faff] hover:bg-white border border-[#d8e6ff] rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-[#1e293b] transition-all"
-                >
-                  <RotateCcw className={`w-4 h-4 text-[#1e88e5] ${isCalibrating ? 'animate-spin' : ''}`} />
-                  {isCalibrating ? 'Calibrating...' : 'Recalibrate IIoT Sensors'}
-                </button>
-
-                <button
-                  onClick={() =>
-                    onCreateWorkOrder?.({
-                      id: `WO-${Date.now().toString().slice(-4)}`,
-                      assetId: asset.id,
-                      title: `Inspection for ${asset.name}`,
-                      priority: isCritical ? 'CRITICAL' : 'MEDIUM',
-                      assignedTo: 'Crew Alpha',
-                    })
-                  }
-                  className="p-3 bg-[#f8faff] hover:bg-white border border-[#d8e6ff] rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-[#1e293b] transition-all"
-                >
-                  <Wrench className="w-4 h-4 text-[#d97706]" />
-                  Dispatch Work Order
-                </button>
-              </div>
-
-              {/* Local E-Stop */}
-              <div className="p-4 bg-[#fff5f5] border border-[#fecaca] rounded-xl space-y-2">
-                <div className="text-xs font-bold text-[#b91c1c] flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4" />
-                  LOCAL EMERGENCY ISOLATION
-                </div>
-                <p className="text-xs text-[#475569]">
-                  Immediately trip safety interlocks, de-energize drive motors, and isolate suction/discharge valves.
-                </p>
-                <button
-                  onClick={() => onTriggerLocalEStop?.(asset.id)}
-                  className="w-full py-2.5 bg-[#dc2626] hover:bg-[#b91c1c] text-white text-xs font-bold rounded-xl shadow-xs transition-all"
-                >
-                  TRIP & ISOLATE ASSET
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 4. Specs */}
-          {activeTab === 'SPECS' && (
-            <div className="space-y-3 text-xs">
-              <div className="p-3 bg-[#f8faff] border border-[#d8e6ff] rounded-xl space-y-1">
-                <div className="text-[#94a3b8] uppercase text-[10px] font-semibold">Manufacturer & Model</div>
-                <div className="text-[#1e293b] font-bold">
-                  {asset.specs?.manufacturer || 'Siemens Energy AG'} • {asset.specs?.model || 'Industrial Series 400'}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-[#f8faff] border border-[#d8e6ff] rounded-xl space-y-1">
-                  <div className="text-[#94a3b8] uppercase text-[10px] font-semibold">Serial Number</div>
-                  <div className="text-[#1e88e5] font-bold">
-                    {asset.specs?.serial || 'SN-849204-DE'}
-                  </div>
-                </div>
-
-                <div className="p-3 bg-[#f8faff] border border-[#d8e6ff] rounded-xl space-y-1">
-                  <div className="text-[#94a3b8] uppercase text-[10px] font-semibold">P&ID Drawing</div>
-                  <div className="text-[#1e88e5] font-bold">
-                    {asset.specs?.pid || 'PID-104-DWG-04'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <button
+          onClick={onClose}
+          className="px-5 py-2.5 rounded-xl bg-white border border-[#d8e6ff] text-[#64748b] hover:text-[#0f172a] text-xs font-bold transition-all hover:bg-[#edf4ff]"
+        >
+          Close
+        </button>
       </div>
     </div>
   );

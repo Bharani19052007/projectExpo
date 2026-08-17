@@ -61,9 +61,10 @@ export default function CoolingAndBoilerUtilities({
       );
     }
 
-    const baseColor = isSelected ? '#00e5ff' : isHovered ? '#4fc3f7' : defaultColor;
-    const emissive = isSelected ? '#00e5ff' : isHovered ? '#0284c7' : '#041d48';
-    const emissiveIntensity = isSelected ? 0.9 : isHovered ? 0.5 : 0.16;
+    // Realistic CAD mode — realistic materials, only DT highlight on selection
+    const baseColor = isSelected ? '#00e5ff' : isHovered ? '#b0cfe8' : defaultColor;
+    const emissive = isSelected ? '#00e5ff' : isHovered ? '#4fc3f7' : '#000000';
+    const emissiveIntensity = isSelected ? 0.75 : isHovered ? 0.22 : 0.0;
 
     return (
       <meshStandardMaterial
@@ -99,31 +100,31 @@ export default function CoolingAndBoilerUtilities({
         {/* Concrete Water Basin */}
         <mesh position={[0, 0.4, 0]} receiveShadow>
           <cylinderGeometry args={[4.2, 4.5, 0.8, 32]} />
-          {getMaterial('COOL-TWR-01', '#1e293b', 0.8, 0.2)}
+          {getMaterial('COOL-TWR-01', '#B8C1C8', 0.8, 0.2)}
         </mesh>
 
         {/* Lower Intake Diagonal Louvers */}
         <mesh position={[0, 1.4, 0]} castShadow>
           <cylinderGeometry args={[3.8, 4.2, 1.2, 24, 1, true]} />
-          {getMaterial('COOL-TWR-01', '#334155', 0.5, 0.5)}
+          {getMaterial('COOL-TWR-01', '#D7DEE3', 0.5, 0.15)}
         </mesh>
 
         {/* Hyperbolic Tower Shell - Lower Taper */}
         <mesh position={[0, 4.5, 0]} castShadow receiveShadow>
           <cylinderGeometry args={[2.8, 3.8, 5.0, 32, 1, true]} />
-          {getMaterial('COOL-TWR-01', '#475569', 0.6, 0.3)}
+          {getMaterial('COOL-TWR-01', '#D7DEE3', 0.6, 0.12)}
         </mesh>
 
         {/* Hyperbolic Tower Shell - Upper Flare */}
         <mesh position={[0, 8.5, 0]} castShadow receiveShadow>
           <cylinderGeometry args={[3.2, 2.8, 3.0, 32, 1, true]} />
-          {getMaterial('COOL-TWR-01', '#475569', 0.6, 0.3)}
+          {getMaterial('COOL-TWR-01', '#DCE4E9', 0.6, 0.12)}
         </mesh>
 
-        {/* Top Rim Collar */}
+        {/* Top Rim Collar - dark steel ring */}
         <mesh position={[0, 10.0, 0]}>
           <torusGeometry args={[3.2, 0.12, 12, 32]} />
-          {getMaterial('COOL-TWR-01', '#0ea5e9', 0.3, 0.8)}
+          {getMaterial('COOL-TWR-01', '#4B5965', 0.3, 0.7)}
         </mesh>
 
         {/* Internal Spinning Fan Assembly */}
@@ -171,30 +172,30 @@ export default function CoolingAndBoilerUtilities({
           onHoverAsset(null);
         }}
       >
-        {/* Rectangular Tower Enclosure */}
+        {/* Rectangular Tower Enclosure - light concrete */}
         <mesh position={[0, 3.2, 0]} castShadow receiveShadow>
           <boxGeometry args={[7.2, 6.4, 4.4]} />
-          {getMaterial('COOL-TWR-02', '#334155', 0.5, 0.5)}
+          {getMaterial('COOL-TWR-02', '#D7DEE3', 0.55, 0.1)}
         </mesh>
 
         {/* Louver Fin Texture Accents */}
         <mesh position={[0, 1.8, 2.25]}>
           <boxGeometry args={[6.8, 2.8, 0.1]} />
-          {getMaterial('COOL-TWR-02', '#1e293b', 0.7, 0.3)}
+          {getMaterial('COOL-TWR-02', '#B8C1C8', 0.7, 0.2)}
         </mesh>
 
         {/* Dual Fan Stack Cylinders (Cell 1 & Cell 2) */}
         {[-2.0, 2.0].map((x, idx) => (
           <group key={`fan-stack-${idx}`} position={[x, 6.4, 0]}>
-            {/* Fan Shroud Stack */}
+            {/* Fan Shroud Stack - dark steel */}
             <mesh position={[0, 0.6, 0]} castShadow>
               <cylinderGeometry args={[1.5, 1.6, 1.2, 24, 1, true]} />
-              {getMaterial('COOL-TWR-02', '#0284c7', 0.3, 0.7)}
+              {getMaterial('COOL-TWR-02', '#4B5965', 0.3, 0.65)}
             </mesh>
             {/* Top Lip Ring */}
             <mesh position={[0, 1.2, 0]}>
               <torusGeometry args={[1.5, 0.08, 12, 24]} />
-              {getMaterial('COOL-TWR-02', '#38bdf8', 0.2, 0.8)}
+              {getMaterial('COOL-TWR-02', '#26343F', 0.2, 0.75)}
             </mesh>
           </group>
         ))}
