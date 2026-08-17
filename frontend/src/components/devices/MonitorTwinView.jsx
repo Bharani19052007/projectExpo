@@ -29,12 +29,16 @@ export default function MonitorTwinView({ isDemoMode }) {
             </div>
 
             <div className="h-80 relative bg-gradient-to-b from-[#0f172a] to-[#020617] border-b border-[#1e293b]">
-              <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-                <ambientLight intensity={0.6} />
-                <spotLight position={[5, 10, 5]} intensity={1.5} />
-                <Environment preset="city" />
+              <Canvas 
+                camera={{ position: [0, 0, 8], fov: 45 }}
+                gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }}
+                onCreated={({ gl }) => {
+                  gl.domElement.addEventListener('webglcontextlost', (e) => e.preventDefault(), false);
+                }}
+              >
+                <ambientLight intensity={1.2} />
+                <directionalLight position={[5, 10, 5]} intensity={1.8} />
                 <Monitor status={device.status} telemetry={device} />
-                <ContactShadows position={[0, -2.05, 0]} opacity={0.6} scale={10} blur={2.5} />
                 <OrbitControls enableZoom={true} enablePan={false} maxPolarAngle={Math.PI / 1.8} minPolarAngle={Math.PI / 4} />
               </Canvas>
               <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/40 rounded text-[10px] text-white/50 backdrop-blur-sm pointer-events-none">

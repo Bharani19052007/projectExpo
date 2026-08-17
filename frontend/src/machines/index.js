@@ -10,21 +10,30 @@ import { industrialPumpStationData } from './industrialPumpStation';
 import { steamBoilerData } from './steamBoiler';
 import { siemensCncData } from './siemensCnc';
 import { automotiveWeldingCellData } from './automotiveWeldingCell';
+import { motorM15Data } from './motorM15';
+import { press45TData } from './press45T';
+import { smartphoneTwinData } from './smartphoneTwin';
 
 export const machinesRegistry = {
-  "SIEM-UNIT1-2026": siemensUnit1Data,
-  "SIEM-UNIT2-PKG": siemensUnit2Data,
+  "MOTOR-M-15": motorM15Data,
+  "SIEM-CNC-5AXIS": siemensCncData,
   "ABB-ROB-CELL-04": abbRoboticCellData,
-  "BOSCH-SMART-CELL": boschSmartCellData,
-  "SCHN-CONV-SORT": schneiderConveyorData,
+  "CLEAVER-BOILER-500": steamBoilerData,
   "INGERSOLL-COMP-200": industrialAirCompressorData,
   "KSB-PUMP-STATION": industrialPumpStationData,
-  "CLEAVER-BOILER-500": steamBoilerData,
-  "SIEM-CNC-5AXIS": siemensCncData,
+  "SIEM-UNIT1-2026": siemensUnit1Data,
+  "SIEM-UNIT2-PKG": siemensUnit2Data,
+  "BOSCH-SMART-CELL": boschSmartCellData,
+  "SCHN-CONV-SORT": schneiderConveyorData,
   "KUKA-WELD-CELL": automotiveWeldingCellData,
+  "PRESS-45T-02": press45TData,
+  "MOBILE_001": smartphoneTwinData,
+  "MOBILE_002": { ...smartphoneTwinData, id: "MOBILE_002", name: "Mobile 002 (Android Device Twin)" },
+  "MOBILE_003": { ...smartphoneTwinData, id: "MOBILE_003", name: "Mobile 003 (Android Device Twin)" },
+  "MOBILE-TWIN-001": smartphoneTwinData,
 };
 
 export function getMachineConfig(machineId) {
-  if (!machineId) return siemensUnit1Data;
-  return machinesRegistry[machineId] || siemensUnit1Data;
+  if (!machineId) return motorM15Data;
+  return machinesRegistry[machineId] || machinesRegistry["MOTOR-M-15"] || siemensUnit1Data;
 }

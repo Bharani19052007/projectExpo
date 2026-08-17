@@ -29,7 +29,7 @@ import {
   campusBuildings,
 } from '../../data/plantAssetsData';
 
-export default function IndustrialOperationsCenter() {
+export default function IndustrialOperationsCenter({ onOpenMachinePartsStudio }) {
   // State for Navigation & Views
   const [viewMode, setViewMode] = useState('OVERVIEW'); // 'OVERVIEW' | 'FLOOR 1' | 'FLOOR 2' | 'FLOOR 3' | 'UTILITIES'
   const [cameraPreset, setCameraPreset] = useState('overview');
@@ -154,6 +154,7 @@ export default function IndustrialOperationsCenter() {
         onOpenEmergencyModal={() => setIsEmergencyOpen(true)}
         isHologramVibration={isHologramVibration}
         onToggleHologramVibration={setIsHologramVibration}
+        onOpenPartsStudio={onOpenMachinePartsStudio}
       />
 
       {/* 3. Hologram Vibration Control HUD (Visible in Vibration Mode) */}
@@ -253,6 +254,7 @@ export default function IndustrialOperationsCenter() {
           asset={selectedAsset}
           selectedComponent={selectedComponent}
           onSelectComponent={setSelectedComponent}
+          onOpenPartsStudio={onOpenMachinePartsStudio}
           onClose={() => {
             setSelectedAssetId(null);
             setSelectedComponent(null);

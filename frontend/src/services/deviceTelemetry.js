@@ -30,11 +30,16 @@ export function useDeviceTelemetry(deviceType, isDemoMode = true) {
   useEffect(() => {
     if (isDemoMode) return;
 
-    // Connect to Backend WebSocket
-    const socket = io('http://localhost:4000');
+    // Connect to Backend WebSocket using dynamic host IP
+    const backendHost = (typeof window !== 'undefined' && window.location.hostname) ? window.location.hostname : 'localhost';
+    const socket = io(`http://${backendHost}:4000`, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
 
     socket.on('connect', () => {
-      console.log(`Connected to TwinMind backend WebSocket. Mode: ${deviceType}`);
+      console.log(`Connected to TwinMind backend WebSocket at http://${backendHost}:4000. Mode: ${deviceType}`);
     });
 
     socket.on('telemetry_update', (data) => {

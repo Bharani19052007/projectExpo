@@ -34,6 +34,7 @@ export default function TopNavigationHub({
   onOpenEmergencyModal,
   isHologramVibration = false,
   onToggleHologramVibration,
+  onOpenPartsStudio,
 }) {
   const [timeUtc, setTimeUtc] = useState('10:24:35 AM');
 
@@ -95,33 +96,45 @@ export default function TopNavigationHub({
           </div>
         </div>
 
-        {/* Center: DUAL PRIMARY TWIN VIEW OPTIONS */}
-        <div className="flex items-center p-1 rounded-2xl border shadow-inner transition-all bg-[#0f172a]/5 dark:bg-[#0f172a] border-[#cbd5e1] dark:border-[#1e293b]">
+        {/* Center: PRIMARY TWIN VIEW OPTIONS */}
+        <div className="flex items-center p-1 rounded-2xl border shadow-inner transition-all bg-[#0f172a]/5 dark:bg-[#0f172a] border-[#cbd5e1] dark:border-[#1e293b] gap-1">
           {/* OPTION 1: REALISTIC FACTORY CAMPUS */}
           <button
             onClick={() => onToggleHologramVibration?.(false)}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
               !isHologramVibration
                 ? 'bg-[#1976d2] text-white shadow-md ring-2 ring-[#1976d2]/30 scale-[1.02]'
                 : 'text-[#64748b] hover:text-[#0f172a] hover:bg-black/5'
             }`}
           >
-            <Factory className="w-4 h-4" />
-            <span>REALISTIC FACTORY</span>
+            <Factory className="w-3.5 h-3.5" />
+            <span>FACTORY CAMPUS</span>
           </button>
 
           {/* OPTION 2: HOLOGRAM VIBRATION TWIN */}
           <button
             onClick={() => onToggleHologramVibration?.(true)}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
               isHologramVibration
                 ? 'bg-[#00c2ff] text-[#020617] shadow-md shadow-[#00c2ff]/30 ring-2 ring-[#00c2ff]/50 scale-[1.02] animate-pulse'
                 : 'text-[#64748b] hover:text-[#00c2ff] hover:bg-black/5'
             }`}
           >
-            <Waves className="w-4 h-4" />
+            <Waves className="w-3.5 h-3.5" />
             <span>HOLOGRAM VIBRATION</span>
           </button>
+
+          {/* OPTION 3: INDIVIDUAL MACHINE & PARTS STUDIO */}
+          {onOpenPartsStudio && (
+            <button
+              onClick={() => onOpenPartsStudio()}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md hover:from-cyan-400 hover:to-blue-500"
+              title="Inspect Individual Machine Digital Twins with Component Breakdown"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              <span>MACHINE & PARTS STUDIO</span>
+            </button>
+          )}
         </div>
 
         {/* Right: Drone Tour, Reset, UTC Clock */}

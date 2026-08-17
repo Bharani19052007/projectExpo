@@ -25,6 +25,7 @@ export default function AssetInspectionModal({
   selectedComponent,
   onSelectComponent,
   onClose,
+  onOpenPartsStudio,
 }) {
   if (!asset) return null;
 
@@ -324,21 +325,33 @@ export default function AssetInspectionModal({
       </div>
 
       {/* Footer Actions */}
-      <div className="p-6 border-t border-[#edf4ff] bg-[#f8faff] flex items-center gap-3">
-        <button
-          onClick={handleCreateWO}
-          className="flex-1 py-2.5 rounded-xl bg-[#1976d2] hover:bg-[#1565c0] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
-        >
-          <Wrench className="w-4 h-4" />
-          <span>Generate Work Order</span>
-        </button>
+      <div className="p-4 border-t border-[#edf4ff] bg-[#f8faff] flex flex-col gap-2">
+        {onOpenPartsStudio && (
+          <button
+            onClick={() => onOpenPartsStudio(asset.id || asset.code)}
+            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 hover:from-blue-700 hover:to-cyan-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
+          >
+            <Cpu className="w-4 h-4 text-cyan-200" />
+            <span>Open in Machine & Parts Studio (Exploded View)</span>
+          </button>
+        )}
 
-        <button
-          onClick={onClose}
-          className="px-5 py-2.5 rounded-xl bg-white border border-[#d8e6ff] text-[#64748b] hover:text-[#0f172a] text-xs font-bold transition-all hover:bg-[#edf4ff]"
-        >
-          Close
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCreateWO}
+            className="flex-1 py-2 rounded-xl bg-[#1976d2] hover:bg-[#1565c0] text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2"
+          >
+            <Wrench className="w-3.5 h-3.5" />
+            <span>Generate Work Order</span>
+          </button>
+
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-white border border-[#d8e6ff] text-[#64748b] hover:text-[#0f172a] text-xs font-bold transition-all hover:bg-[#edf4ff]"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );

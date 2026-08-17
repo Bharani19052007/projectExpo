@@ -46,66 +46,65 @@ export default function Press45TModel({
 
       child.traverse((mesh) => {
         if (mesh.isMesh && mesh.material) {
-          mesh.material.transparent = true;
+          const defaultColor = mesh.userData?.defaultColor || '#94a3b8';
 
           if (isHologram) {
             mesh.material.wireframe = true;
+            mesh.material.transparent = true;
             if (isSimulatingFailure && isSelected) {
               mesh.material.color.set('#ff2222');
               mesh.material.emissive.set('#ef4444');
-              mesh.material.emissiveIntensity = 1.0;
+              mesh.material.emissiveIntensity = 1.2;
               mesh.material.opacity = 0.95;
             } else if (selectedComponent) {
               if (isSelected) {
                 mesh.material.color.set('#00ffff');
                 mesh.material.emissive.set('#00ffff');
-                mesh.material.emissiveIntensity = 1.2;
-                mesh.material.opacity = 0.95;
+                mesh.material.emissiveIntensity = 1.4;
+                mesh.material.opacity = 1.0;
               } else {
                 mesh.material.color.set('#00bfff');
-                mesh.material.emissive.set('#005588');
-                mesh.material.emissiveIntensity = 0.2;
-                mesh.material.opacity = 0.2;
+                mesh.material.emissive.set('#004477');
+                mesh.material.emissiveIntensity = 0.3;
+                mesh.material.opacity = 0.45;
               }
             } else {
               mesh.material.color.set('#00f0ff');
-              mesh.material.emissive.set('#0088cc');
-              mesh.material.emissiveIntensity = 0.4 + Math.sin(time * 2 + child.position.x) * 0.15;
-              mesh.material.opacity = 0.55;
+              mesh.material.emissive.set('#0077aa');
+              mesh.material.emissiveIntensity = 0.45 + Math.sin(time * 2 + child.position.x) * 0.15;
+              mesh.material.opacity = 0.7;
             }
           } else {
             mesh.material.wireframe = false;
+            mesh.material.transparent = selectedComponent && !isSelected;
+
             if (selectedComponent) {
               if (isSelected) {
                 mesh.material.opacity = 1.0;
                 if (isSimulatingFailure) {
                   mesh.material.color.set('#ef4444');
                   mesh.material.emissive.set('#dc2626');
-                  mesh.material.emissiveIntensity = 0.8;
+                  mesh.material.emissiveIntensity = 0.9;
                 } else if (viewMode === 'THERMAL') {
                   mesh.material.color.set('#f97316');
                   mesh.material.emissive.set('#ea580c');
-                  mesh.material.emissiveIntensity = 0.6;
+                  mesh.material.emissiveIntensity = 0.7;
                 } else {
                   mesh.material.color.set('#0284c7');
-                  mesh.material.emissive.set('#0369a1');
-                  mesh.material.emissiveIntensity = 0.4;
+                  mesh.material.emissive.set('#00e5ff');
+                  mesh.material.emissiveIntensity = 0.5;
                 }
               } else {
-                mesh.material.opacity = 0.25;
-                if (mesh.userData?.defaultColor) {
-                  mesh.material.color.set(mesh.userData.defaultColor);
-                  mesh.material.emissive.set('#000000');
-                  mesh.material.emissiveIntensity = 0;
-                }
-              }
-            } else {
-              mesh.material.opacity = 1.0;
-              if (mesh.userData?.defaultColor) {
-                mesh.material.color.set(mesh.userData.defaultColor);
+                mesh.material.opacity = 0.75;
+                mesh.material.color.set(defaultColor);
                 mesh.material.emissive.set('#000000');
                 mesh.material.emissiveIntensity = 0;
               }
+            } else {
+              mesh.material.opacity = 1.0;
+              mesh.material.color.set(defaultColor);
+              mesh.material.emissive.set('#000000');
+              mesh.material.emissiveIntensity = 0;
             }
           }
         }

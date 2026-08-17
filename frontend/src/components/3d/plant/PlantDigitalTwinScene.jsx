@@ -257,6 +257,11 @@ export default function PlantDigitalTwinScene({
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: isHologramVibration ? 1.2 : 1.18,
+          preserveDrawingBuffer: false,
+          failIfMajorPerformanceCaveat: false
+        }}
+        onCreated={({ gl }) => {
+          gl.domElement.addEventListener('webglcontextlost', (e) => e.preventDefault(), false);
         }}
       >
         {isHologramVibration ? (
