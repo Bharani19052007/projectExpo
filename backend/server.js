@@ -44,14 +44,14 @@ io.on('connection', (socket) => {
     io.emit('telemetry_update', deviceStates.get(data.deviceId));
   }
 
-  // Handle client disconnect
-  socket.on('disconnect', () => {
-    console.log(`[Socket.IO] Client disconnected: ${socket.id}`);
+  // Handle client disconnect with reason
+  socket.on('disconnect', (reason) => {
+    console.log(`[Socket.IO] Client disconnected: ${socket.id} (Reason: ${reason})`);
     
-    // Find if this socket belonged to a device
+    // Find if this socket belonged to a registered device
     for (const [deviceId, state] of deviceStates.entries()) {
       if (state.socketId === socket.id) {
-        console.log(`[Device] ${deviceId} went OFFLINE`);
+        console.log(`[Device] ${deviceId} went OFFLINE (Reason: ${reason})`);
         state.online = false;
         
         // Broadcast offline status
