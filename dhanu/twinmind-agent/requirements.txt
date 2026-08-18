@@ -1,0 +1,38 @@
+# TwinMind AI Monitoring Agent — Dependencies
+# Python 3.11+
+
+# Core system monitoring
+psutil>=5.9.8
+
+# Async HTTP client (telemetry fallback + pairing API)
+httpx[http2]>=0.27.0
+
+# WebSocket client (primary real-time channel)
+websockets>=12.0
+
+# Environment / config loading
+python-dotenv>=1.0.1
+
+# System tray integration
+pystray>=0.19.5
+
+# Image handling (tray icon generation, Pillow required by pystray)
+Pillow>=10.3.0
+
+# CPU info (model name, architecture details)
+py-cpuinfo>=9.0.0
+
+# Colored terminal / rotating log output
+colorlog>=6.8.2
+
+# Keyring for secure token storage (uses Windows Credential Manager on Windows)
+keyring>=25.2.1
+
+# Windows-specific extras (install only on Windows — harmless to list here)
+# wmi is used for GPU, temperature and SMART data on Windows
+# Installed conditionally in main.py startup check
+# wmi>=1.5.1          # uncomment and install manually on Windows if needed
+# pywin32>=306        # required by wmi on Windows
+
+# Type checking helpers (runtime)
+typing_extensions>=4.11.0

@@ -1,0 +1,7 @@
+{
+  "serverHost": "127.0.0.1",
+  "serverPort": 4000,
+  "deviceId": "laptop-001",
+  "token": "TWINMIND_LAPTOP_SECURE_TOKEN_2026",
+  "telemetryInterval": 2000
+}

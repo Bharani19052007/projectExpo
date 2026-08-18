@@ -18,8 +18,12 @@ export default function TelemetryCard({ title, value, unit, icon: Icon, color = 
         <span className="text-xs font-semibold uppercase tracking-wider opacity-80">{title}</span>
       </div>
       <div className="font-mono font-bold">
-        <span className="text-lg">{value}</span>
-        {unit && <span className="text-xs ml-1 opacity-70">{unit}</span>}
+        <span className="text-lg">
+          {value !== null && value !== undefined ? value : 'N/A'}
+        </span>
+        {unit && value !== null && value !== undefined && (
+          <span className="text-xs ml-1 opacity-70">{unit}</span>
+        )}
       </div>
     </div>
   );

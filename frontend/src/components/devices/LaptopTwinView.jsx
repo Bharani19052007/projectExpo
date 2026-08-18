@@ -18,7 +18,17 @@ import LaptopAlerts from './LaptopAlerts';
 
 export default function LaptopTwinView({ isDemoMode }) {
   const devices = useDeviceTelemetry('LAPTOP', isDemoMode);
-  const laptopDevice = devices && devices.length > 0 ? devices[0] : null;
+  const [selectedDeviceId, setSelectedDeviceId] = useState(null);
+
+  // Auto-select: prefer first online device, else first device
+  const laptopDevice = (() => {
+    if (!devices || devices.length === 0) return null;
+    if (selectedDeviceId) {
+      const found = devices.find(d => d.id === selectedDeviceId);
+      if (found) return found;
+    }
+    return devices.find(d => d.online !== false) || devices[0];
+  })();
 
   // Selected component in 3D / Inspector
   const [selectedComponent, setSelectedComponent] = useState(null);
@@ -121,19 +131,44 @@ export default function LaptopTwinView({ isDemoMode }) {
           </p>
         </div>
 
-        {/* Live stream badge */}
-        <div className="flex items-center gap-2">
-          {!isOnline ? (
-            <div className="flex items-center gap-2 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full text-rose-400 text-xs font-bold w-fit">
-              <div className="w-2 h-2 rounded-full bg-rose-500" />
-              LAPTOP OFFLINE
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 text-xs font-bold w-fit">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              {isDemoMode ? 'SIMULATOR ON' : 'LIVE SOCKET TELEMETRY'}
+        {/* Right side: Device switcher + live badge */}
+        <div className="flex items-center gap-3">
+          {/* Multi-device selector (shown when >1 laptop) */}
+          {devices.length > 1 && (
+            <div className="flex items-center gap-1 p-1 bg-[#0a0f1d] rounded-xl border border-[#1e293b]">
+              {devices.map(d => (
+                <button
+                  key={d.id}
+                  onClick={() => setSelectedDeviceId(d.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                    laptopDevice.id === d.id
+                      ? 'bg-sky-500/20 border border-sky-500/40 text-sky-400'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  <div className={`w-1.5 h-1.5 rounded-full ${
+                    d.online !== false ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'
+                  }`} />
+                  <span className="max-w-[80px] truncate">{d.name || d.id}</span>
+                </button>
+              ))}
             </div>
           )}
+
+          {/* Live stream badge */}
+          <div className="flex items-center gap-2">
+            {!isOnline ? (
+              <div className="flex items-center gap-2 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full text-rose-400 text-xs font-bold w-fit">
+                <div className="w-2 h-2 rounded-full bg-rose-500" />
+                LAPTOP OFFLINE
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 text-xs font-bold w-fit">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                {isDemoMode ? 'SIMULATOR ON' : 'LIVE SOCKET TELEMETRY'}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
