@@ -350,8 +350,6 @@ export default function MotorViewer({
             <directionalLight position={[-12, 10, -12]} intensity={0.9} color="#38bdf8" />
             <directionalLight position={[0, -10, 10]} intensity={0.4} color="#0284c7" />
 
-            <Environment preset="city" />
-
             <PerspectiveCamera 
               makeDefault 
               position={initialCameraPos} 
@@ -395,6 +393,7 @@ export default function MotorViewer({
             />
 
             <Suspense fallback={<Loader />}>
+              <Environment preset="city" />
               
               {/* IF DIGITAL TWIN VIEW IS OFF: Render 1 Single Physical Machine Centered */}
               {!isDigitalTwinView && (

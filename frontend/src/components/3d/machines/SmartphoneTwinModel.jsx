@@ -16,7 +16,8 @@ export default function SmartphoneTwinModel({
   // Live Socket Telemetry Values
   const batteryPct = Math.round(telemetry?.battery ?? 23);
   const tempVal = Number((telemetry?.temperature ?? 28).toFixed(1));
-  const cpuPct = Number((telemetry?.cpu ?? 19.2).toFixed(1));
+  const cpuPct = Number((telemetry?.cpuUsage ?? telemetry?.cpu ?? 19.2).toFixed(1));
+  const ramPct = Number((telemetry?.ramUsage ?? telemetry?.ram ?? 44.5).toFixed(1));
   const isCharging = Boolean(telemetry?.charging);
 
   useFrame((state, delta) => {
@@ -92,43 +93,64 @@ export default function SmartphoneTwinModel({
             mesh.material.wireframe = false;
             mesh.material.transparent = Boolean(selectedComponent && !isSelected);
 
-            if (selectedComponent) {
-              if (isSelected) {
-                mesh.material.opacity = 1.0;
-                if (isSimulatingFailure) {
-                  mesh.material.color.set('#ef4444');
+            if (selectedComponent && !isSelected) {
+              // Fade out unselected parts
+              mesh.material.opacity = 0.4;
+              mesh.material.color.set(defaultColor);
+              if (hasEmissive) {
+                mesh.material.emissive.set('#000000');
+                mesh.material.emissiveIntensity = 0;
+              }
+            } else {
+              // Active styling for the selected part or when nothing is selected
+              mesh.material.opacity = 1.0;
+              if (isSimulatingFailure && isSelected) {
+                mesh.material.color.set('#ef4444');
+                if (hasEmissive) {
+                  mesh.material.emissive.set('#dc2626');
+                  mesh.material.emissiveIntensity = 0.9;
+                }
+              } else if (viewMode === 'THERMAL') {
+                const thermalColor = tempVal > 40 ? '#ef4444' : tempVal > 30 ? '#f97316' : '#0284c7';
+                mesh.material.color.set(thermalColor);
+                if (hasEmissive) {
+                  mesh.material.emissive.set(thermalColor);
+                  mesh.material.emissiveIntensity = 0.7;
+                }
+              } else {
+                // Apply CPU / RAM active visual telemetry
+                const type = mesh.userData?.type;
+                if (type === 'soc-die') {
+                  const speed = cpuPct > 85 ? 18 : cpuPct > 50 ? 10 : 3.5;
+                  const maxIntensity = cpuPct > 85 ? 1.5 : cpuPct > 50 ? 1.0 : 0.65;
+                  const intensity = 0.2 + Math.abs(Math.sin(time * speed)) * maxIntensity;
+                  
+                  mesh.material.color.set(cpuPct > 85 ? '#ef4444' : defaultColor);
                   if (hasEmissive) {
-                    mesh.material.emissive.set('#dc2626');
-                    mesh.material.emissiveIntensity = 0.9;
+                    mesh.material.emissive.set(cpuPct > 85 ? '#dc2626' : '#00e5ff');
+                    mesh.material.emissiveIntensity = intensity;
                   }
-                } else if (viewMode === 'THERMAL') {
-                  const thermalColor = tempVal > 40 ? '#ef4444' : tempVal > 30 ? '#f97316' : '#0284c7';
-                  mesh.material.color.set(thermalColor);
-                  if (hasEmissive) {
-                    mesh.material.emissive.set(thermalColor);
-                    mesh.material.emissiveIntensity = 0.7;
+                } else if (type === 'ram-chip') {
+                  if (ramPct > 80) {
+                    mesh.material.color.set('#ef4444');
+                    if (hasEmissive) {
+                      mesh.material.emissive.set('#dc2626');
+                      mesh.material.emissiveIntensity = 0.8 + Math.abs(Math.sin(time * 12)) * 0.4;
+                    }
+                  } else {
+                    mesh.material.color.set(defaultColor);
+                    if (hasEmissive) {
+                      mesh.material.emissive.set('#00e5ff');
+                      mesh.material.emissiveIntensity = ramPct / 180;
+                    }
                   }
                 } else {
                   mesh.material.color.set(defaultColor);
                   if (hasEmissive) {
-                    mesh.material.emissive.set('#00e5ff');
-                    mesh.material.emissiveIntensity = 0.6;
+                    mesh.material.emissive.set(defaultEmissive);
+                    mesh.material.emissiveIntensity = defaultEmissiveIntensity;
                   }
                 }
-              } else {
-                mesh.material.opacity = 0.7;
-                mesh.material.color.set(defaultColor);
-                if (hasEmissive) {
-                  mesh.material.emissive.set('#000000');
-                  mesh.material.emissiveIntensity = 0;
-                }
-              }
-            } else {
-              mesh.material.opacity = 1.0;
-              mesh.material.color.set(defaultColor);
-              if (hasEmissive) {
-                mesh.material.emissive.set(defaultEmissive);
-                mesh.material.emissiveIntensity = defaultEmissiveIntensity;
               }
             }
           }
@@ -202,16 +224,16 @@ export default function SmartphoneTwinModel({
         </mesh>
         
         {/* 4nm Octa-Core SoC Processor Die */}
-        <mesh position={[0, 0.1, 0.035]} userData={{ defaultColor: '#0284c7', emissive: '#00e5ff', emissiveIntensity: 0.7 }}>
+        <mesh position={[0, 0.1, 0.035]} userData={{ type: 'soc-die', defaultColor: '#0284c7', emissive: '#00e5ff', emissiveIntensity: 0.7 }}>
           <boxGeometry args={[0.48, 0.48, 0.04]} />
           <meshStandardMaterial color="#0284c7" roughness={0.2} metalness={0.95} emissive="#00e5ff" emissiveIntensity={0.7} />
         </mesh>
         
         {/* LPDDR5 RAM & UFS Storage Chips */}
         {[-0.38, 0.38].map((x, i) => (
-          <mesh key={i} position={[x, -0.22, 0.03]} userData={{ defaultColor: '#1e293b' }}>
+          <mesh key={i} position={[x, -0.22, 0.03]} userData={{ type: 'ram-chip', defaultColor: '#1e293b', emissive: '#00e5ff', emissiveIntensity: 0.0 }}>
             <boxGeometry args={[0.3, 0.38, 0.03]} />
-            <meshStandardMaterial color="#1e293b" roughness={0.3} metalness={0.7} />
+            <meshStandardMaterial color="#1e293b" roughness={0.3} metalness={0.7} emissive="#00e5ff" emissiveIntensity={0.0} />
           </mesh>
         ))}
 
@@ -256,32 +278,67 @@ export default function SmartphoneTwinModel({
         position={[-0.38, 0.9, -0.16]}
         onClick={(e) => {
           e.stopPropagation();
-          setSelectedComponent(components.find((c) => c.id === 'phone-camera-module') || { id: 'phone-camera-module', name: '50MP Triple Camera Module' });
+          setSelectedComponent(components.find((c) => c.id === 'phone-camera-module') || { id: 'phone-camera-module', name: '50MP Main Camera & Flicker Sensor' });
         }}
       >
-        {/* Camera Bump Island Housing */}
-        <mesh position={[0, 0, 0]} userData={{ defaultColor: '#1e293b' }}>
-          <boxGeometry args={[0.58, 0.98, 0.08]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.2} metalness={0.9} />
+        {/* Camera Bump Island Housing (Vivo Y200e Saffron Delight light golden-beige plate) */}
+        <mesh position={[0, 0, 0]} userData={{ defaultColor: '#fef08a' }}>
+          <boxGeometry args={[0.54, 1.12, 0.08]} />
+          <meshStandardMaterial color="#fef08a" roughness={0.1} metalness={0.8} />
+        </mesh>
+        {/* Camera Bump Outer Gold Border Frame */}
+        <mesh position={[0, 0, -0.005]}>
+          <boxGeometry args={[0.56, 1.14, 0.07]} />
+          <meshStandardMaterial color="#fbbf24" roughness={0.1} metalness={0.95} />
         </mesh>
         
-        {/* Primary 50MP Sony IMX920 Sensor */}
-        <mesh position={[0, 0.28, -0.048]} rotation={[Math.PI / 2, 0, 0]} userData={{ defaultColor: '#0284c7', emissive: '#0284c7', emissiveIntensity: 0.4 }}>
-          <cylinderGeometry args={[0.17, 0.17, 0.04, 24]} />
-          <meshStandardMaterial color="#0284c7" metalness={0.95} roughness={0.1} emissive="#0284c7" emissiveIntensity={0.4} />
-        </mesh>
+        {/* Top Camera Ring (Outer Gold + Inner Lens) */}
+        <group position={[-0.12, 0.34, -0.048]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.15, 0.15, 0.04, 24]} />
+            <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
+          </mesh>
+          <mesh position={[0, 0, -0.01]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.11, 0.11, 0.05, 24]} />
+            <meshStandardMaterial color="#111827" metalness={0.95} roughness={0.05} emissive="#0284c7" emissiveIntensity={0.3} />
+          </mesh>
+        </group>
         
-        {/* Ultra-Wide Secondary Lens */}
-        <mesh position={[0, -0.12, -0.048]} rotation={[Math.PI / 2, 0, 0]} userData={{ defaultColor: '#38bdf8' }}>
-          <cylinderGeometry args={[0.14, 0.14, 0.04, 24]} />
-          <meshStandardMaterial color="#38bdf8" metalness={0.95} roughness={0.1} />
-        </mesh>
+        {/* Middle Camera Ring (Outer Gold + Inner Lens) */}
+        <group position={[-0.12, 0.0, -0.048]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.15, 0.15, 0.04, 24]} />
+            <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
+          </mesh>
+          <mesh position={[0, 0, -0.01]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.11, 0.11, 0.05, 24]} />
+            <meshStandardMaterial color="#111827" metalness={0.95} roughness={0.05} />
+          </mesh>
+        </group>
         
-        {/* Dual-Tone Halo LED Flash */}
-        <mesh position={[0, -0.36, -0.048]} rotation={[Math.PI / 2, 0, 0]} userData={{ defaultColor: '#f59e0b', emissive: '#fbbf24', emissiveIntensity: 0.8 }}>
-          <cylinderGeometry args={[0.08, 0.08, 0.03, 16]} />
-          <meshStandardMaterial color="#f59e0b" emissive="#fbbf24" emissiveIntensity={0.8} />
-        </mesh>
+        {/* Bottom Camera Ring (Outer Gold + Inner Lens) */}
+        <group position={[-0.12, -0.34, -0.048]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.15, 0.15, 0.04, 24]} />
+            <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
+          </mesh>
+          <mesh position={[0, 0, -0.01]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.11, 0.11, 0.05, 24]} />
+            <meshStandardMaterial color="#111827" metalness={0.95} roughness={0.05} />
+          </mesh>
+        </group>
+
+        {/* LED Flash Ring (Top-Right of Camera Island) */}
+        <group position={[0.13, 0.34, -0.048]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.07, 0.07, 0.03, 16]} />
+            <meshStandardMaterial color="#fbbf24" metalness={0.8} roughness={0.2} />
+          </mesh>
+          <mesh position={[0, 0, -0.005]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.05, 0.05, 0.04, 16]} />
+            <meshStandardMaterial color="#fef08a" emissive="#fbbf24" emissiveIntensity={0.8} />
+          </mesh>
+        </group>
       </group>
 
       {/* 5. LIQUID COOLING COPPER VAPOR CHAMBER */}
@@ -333,29 +390,104 @@ export default function SmartphoneTwinModel({
         </mesh>
       </group>
 
-      {/* 8. AEROSPACE ALUMINUM UNIBODY CHASSIS & BACK GLASS */}
+      {/* 8. ECO-FIBER LEATHER CHASSIS & GOLDEN FRAME (IP54) */}
       <group
         userData={{ compId: 'phone-chassis' }}
         position={[0, 0, -0.12]}
         onClick={(e) => {
           e.stopPropagation();
-          setSelectedComponent(components.find((c) => c.id === 'phone-chassis') || { id: 'phone-chassis', name: 'Aerospace Aluminum Chassis' });
+          setSelectedComponent(components.find((c) => c.id === 'phone-chassis') || { id: 'phone-chassis', name: 'Eco-Fiber Leather Chassis' });
         }}
       >
-        {/* Structural Unibody Midframe */}
-        <mesh position={[0, 0, 0]} userData={{ defaultColor: '#334155', emissive: '#1e293b', emissiveIntensity: 0.2 }}>
-          <boxGeometry args={[1.56, 3.24, 0.06]} />
-          <meshStandardMaterial color="#334155" roughness={0.25} metalness={0.85} emissive="#1e293b" emissiveIntensity={0.2} />
+        {/* Golden Metallic High-Gloss Frame */}
+        <mesh position={[0, 0, 0]} userData={{ defaultColor: '#fbbf24' }}>
+          <boxGeometry args={[1.56, 3.24, 0.08]} />
+          <meshStandardMaterial color="#fbbf24" roughness={0.1} metalness={0.95} />
         </mesh>
 
-        {/* Side Metal Buttons (Volume & Power) */}
-        <mesh position={[0.79, 0.5, 0]} userData={{ defaultColor: '#64748b' }}>
-          <boxGeometry args={[0.02, 0.35, 0.03]} />
-          <meshStandardMaterial color="#64748b" metalness={0.95} roughness={0.1} />
+        {/* Saffron Orange Eco-Fiber Leather Textured Back Panel */}
+        <mesh position={[0, 0, -0.05]} userData={{ defaultColor: '#f97316' }}>
+          <boxGeometry args={[1.52, 3.2, 0.02]} />
+          <meshStandardMaterial color="#f97316" roughness={0.75} metalness={0.05} />
         </mesh>
-        <mesh position={[0.79, 0.1, 0]} userData={{ defaultColor: '#0ea5e9' }}>
+
+        {/* Diagonal Stitching Pattern (Embossed Diamond Cover Pattern) */}
+        {/* Diagonal forward slash lines (/) */}
+        <mesh position={[0, 0.6, -0.062]} rotation={[0, 0, Math.PI / 5]} userData={{ defaultColor: '#ea580c' }}>
+          <boxGeometry args={[0.01, 1.8, 0.005]} />
+          <meshStandardMaterial color="#ea580c" roughness={0.5} />
+        </mesh>
+        <mesh position={[0, -0.6, -0.062]} rotation={[0, 0, Math.PI / 5]} userData={{ defaultColor: '#ea580c' }}>
+          <boxGeometry args={[0.01, 1.8, 0.005]} />
+          <meshStandardMaterial color="#ea580c" roughness={0.5} />
+        </mesh>
+        {/* Diagonal back slash lines (\) */}
+        <mesh position={[0, 0.6, -0.062]} rotation={[0, 0, -Math.PI / 5]} userData={{ defaultColor: '#ea580c' }}>
+          <boxGeometry args={[0.01, 1.8, 0.005]} />
+          <meshStandardMaterial color="#ea580c" roughness={0.5} />
+        </mesh>
+        <mesh position={[0, -0.6, -0.062]} rotation={[0, 0, -Math.PI / 5]} userData={{ defaultColor: '#ea580c' }}>
+          <boxGeometry args={[0.01, 1.8, 0.005]} />
+          <meshStandardMaterial color="#ea580c" roughness={0.5} />
+        </mesh>
+
+        {/* Vertical Gold segments spelling 'vivo' vertically on bottom-left */}
+        <group position={[-0.45, -1.0, -0.062]}>
+          {/* V letter */}
+          <group position={[0, 0.18, 0]}>
+            <mesh position={[-0.03, 0, 0]} rotation={[0, 0, -Math.PI / 6]}>
+              <boxGeometry args={[0.015, 0.06, 0.005]} />
+              <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
+            </mesh>
+            <mesh position={[0.03, 0, 0]} rotation={[0, 0, Math.PI / 6]}>
+              <boxGeometry args={[0.015, 0.06, 0.005]} />
+              <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
+            </mesh>
+          </group>
+          {/* I letter */}
+          <group position={[0, 0.08, 0]}>
+            <mesh position={[0, -0.01, 0]}>
+              <boxGeometry args={[0.015, 0.04, 0.005]} />
+              <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
+            </mesh>
+            <mesh position={[0, 0.02, 0]}>
+              <boxGeometry args={[0.015, 0.015, 0.005]} />
+              <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
+            </mesh>
+          </group>
+          {/* V letter 2 */}
+          <group position={[0, -0.02, 0]}>
+            <mesh position={[-0.03, 0, 0]} rotation={[0, 0, -Math.PI / 6]}>
+              <boxGeometry args={[0.015, 0.06, 0.005]} />
+              <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
+            </mesh>
+            <mesh position={[0.03, 0, 0]} rotation={[0, 0, Math.PI / 6]}>
+              <boxGeometry args={[0.015, 0.06, 0.005]} />
+              <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
+            </mesh>
+          </group>
+          {/* O letter */}
+          <group position={[0, -0.12, 0]}>
+            <mesh>
+              <boxGeometry args={[0.06, 0.06, 0.005]} />
+              <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
+            </mesh>
+            {/* Inner cutout */}
+            <mesh position={[0, 0, 0.001]}>
+              <boxGeometry args={[0.03, 0.03, 0.006]} />
+              <meshStandardMaterial color="#f97316" roughness={0.75} />
+            </mesh>
+          </group>
+        </group>
+
+        {/* Side Gold Buttons (Volume & Power) */}
+        <mesh position={[0.79, 0.5, 0]} userData={{ defaultColor: '#fbbf24' }}>
+          <boxGeometry args={[0.02, 0.35, 0.03]} />
+          <meshStandardMaterial color="#fbbf24" metalness={0.95} roughness={0.1} />
+        </mesh>
+        <mesh position={[0.79, 0.1, 0]} userData={{ defaultColor: '#fbbf24' }}>
           <boxGeometry args={[0.02, 0.25, 0.03]} />
-          <meshStandardMaterial color="#0ea5e9" metalness={0.95} roughness={0.1} />
+          <meshStandardMaterial color="#fbbf24" metalness={0.95} roughness={0.1} />
         </mesh>
       </group>
 

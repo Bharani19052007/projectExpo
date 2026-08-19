@@ -28,8 +28,6 @@ export const machinesRegistry = {
   "KUKA-WELD-CELL": automotiveWeldingCellData,
   "PRESS-45T-02": press45TData,
   "MOBILE_001": smartphoneTwinData,
-  "MOBILE_002": { ...smartphoneTwinData, id: "MOBILE_002", name: "Mobile 002 (Android Device Twin)" },
-  "MOBILE_003": { ...smartphoneTwinData, id: "MOBILE_003", name: "Mobile 003 (Android Device Twin)" },
   "MOBILE-TWIN-001": smartphoneTwinData,
 };
 

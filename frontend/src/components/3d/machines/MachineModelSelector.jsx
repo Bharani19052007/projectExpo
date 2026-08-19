@@ -69,8 +69,6 @@ export default function MachineModelSelector({
     case 'SIEM-UNIT2-PKG':
       return <SiemensUnit2Model {...commonProps} />;
     case 'MOBILE_001':
-    case 'MOBILE_002':
-    case 'MOBILE_003':
     case 'MOBILE-TWIN-001':
     case 'SMARTPHONE-TWIN':
       return <SmartphoneTwinModel {...commonProps} />;

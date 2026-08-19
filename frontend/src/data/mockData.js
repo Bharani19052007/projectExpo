@@ -604,11 +604,11 @@ export const refMachineComponentsData = [
 export const allIndustrialMachines = [
   {
     id: "MOBILE_001",
-    name: "Vivo V2336 (Live Connected Smartphone Twin)",
+    name: "Vivo Y200e (Live Connected Smartphone Twin)",
     category: "IoT-Connected Mobile Device Real-Time Twin",
     location: "Live IoT Stream - Client Mobile Socket",
     manufacturer: "Vivo Mobile Communications Co.",
-    serialNumber: "SN-VIVO-V2336-LIVE",
+    serialNumber: "SN-VIVO-Y200E-LIVE",
     status: "HEALTHY",
     healthScore: 96,
     temperature: 28.0,

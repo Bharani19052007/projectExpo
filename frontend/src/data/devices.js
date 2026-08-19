@@ -1,36 +1,21 @@
 export const mockMobileDevices = [
   {
     id: "MOBILE_001",
-    name: "Mobile 001",
+    name: "Vivo Y200e",
+    model: "Vivo V2336",
     battery: 82,
     temperature: 32,
     cpu: 28,
     ram: 45,
+    cpuUsage: 28,
+    ramUsage: 45,
+    ramTotal: 8192,
+    ramUsed: 3686,
     network: "WiFi",
     charging: true,
-    status: "normal"
-  },
-  {
-    id: "MOBILE_002",
-    name: "Mobile 002",
-    battery: 61,
-    temperature: 39,
-    cpu: 64,
-    ram: 72,
-    network: "5G",
-    charging: false,
-    status: "warning"
-  },
-  {
-    id: "MOBILE_003",
-    name: "Mobile 003",
-    battery: 94,
-    temperature: 31,
-    cpu: 21,
-    ram: 38,
-    network: "WiFi",
-    charging: true,
-    status: "normal"
+    status: "normal",
+    online: true,
+    isReal: true
   }
 ];
 

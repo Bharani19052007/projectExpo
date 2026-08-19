@@ -50,8 +50,6 @@ import MotorViewer from '../3d/MotorViewer';
 // Visual Machine Category metadata
 const machineIcons = {
   'MOBILE_001': '📱',
-  'MOBILE_002': '📱',
-  'MOBILE_003': '📱',
   'MOBILE-TWIN-001': '📱',
   'SMARTPHONE-TWIN': '📱',
   'MOTOR-M-15': '⚡',
@@ -74,8 +72,18 @@ export default function DigitalTwinPage({
   onSelectMachine,
   isMachineLoading: propIsLoading,
   loadingStage: propLoadingStage,
-  onSwitchMachine
+  onSwitchMachine,
+  isDemoMode = false,
+  setIsDemoMode,
+  isExpoMode = false,
+  setIsExpoMode
 }) {
+  const [timeTick, setTimeTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTimeTick(t => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Machine Library Dropdown & State (Fallback to local state if props omitted)
   const [localMachine, setLocalMachine] = useState(allIndustrialMachines[0]);
   const [localIsLoading, setLocalIsLoading] = useState(false);
@@ -89,8 +97,24 @@ export default function DigitalTwinPage({
   const activeMachineConfig = getMachineConfig(selectedMachine.id);
 
   // Live Socket.IO Mobile Telemetry Stream for Connected Smartphone Twins
-  const liveMobileList = useDeviceTelemetry('MOBILE', false);
+  const liveMobileList = useDeviceTelemetry('MOBILE', isDemoMode, () => {
+    if (isDemoMode && setIsDemoMode) setIsDemoMode(false);
+  });
   const liveMobileTelemetry = liveMobileList.find((d) => d.id === selectedMachine.id || d.id === 'MOBILE_001') || liveMobileList[0];
+
+  const isMobile = selectedMachine.id.startsWith('MOBILE');
+  const isOnline = isMobile && liveMobileTelemetry?.online;
+  const isSocketConnected = liveMobileList.socketConnected;
+  const lastUpdateTime = liveMobileList.lastUpdate;
+
+  const telemetryStatus = useMemo(() => {
+    if (!isMobile) return 'NORMAL';
+    if (!isSocketConnected) return 'DISCONNECTED';
+    if (!lastUpdateTime) return 'WAITING';
+    const ageSeconds = Math.round((Date.now() - lastUpdateTime) / 1000);
+    if (ageSeconds > 8) return 'STALE';
+    return 'LIVE';
+  }, [isMobile, isSocketConnected, lastUpdateTime, timeTick]);
 
   // 3D Overlays & Controls
   const [viewMode, setViewMode] = useState('CAD'); // 'CAD' | 'EXPLODED' | 'THERMAL' | 'VIBRATION'
@@ -252,11 +276,37 @@ export default function DigitalTwinPage({
                 <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-cyan-400 border border-slate-700">
                   {selectedMachine.id}
                 </span>
-                {selectedMachine.id.startsWith('MOBILE') && liveMobileTelemetry?.online && (
-                  <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-emerald-950/90 text-emerald-300 border border-emerald-700 flex items-center gap-1.5 animate-pulse">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400" />
-                    LIVE SOCKET.IO STREAM
-                  </span>
+                {selectedMachine.id.startsWith('MOBILE') && (
+                  <>
+                    <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-cyan-950/90 text-cyan-300 border border-cyan-700 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                      REAL DEVICE
+                    </span>
+                    {telemetryStatus === 'LIVE' && (
+                      <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-emerald-950/90 text-emerald-300 border border-emerald-700 flex items-center gap-1.5 animate-pulse">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        LIVE SOCKET.IO STREAM
+                      </span>
+                    )}
+                    {telemetryStatus === 'STALE' && (
+                      <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-amber-950/95 text-amber-300 border border-amber-800 flex items-center gap-1.5 animate-pulse">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                        TELEMETRY STALE
+                      </span>
+                    )}
+                    {telemetryStatus === 'DISCONNECTED' && (
+                      <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-red-950/90 text-red-300 border border-red-800 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-red-500" />
+                        DISCONNECTED
+                      </span>
+                    )}
+                    {telemetryStatus === 'WAITING' && (
+                      <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-slate-500" />
+                        WAITING FOR STREAM
+                      </span>
+                    )}
+                  </>
                 )}
                 <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${
                   isSimulatingFailure
@@ -277,7 +327,7 @@ export default function DigitalTwinPage({
           </div>
 
           {/* 3D Mode & View Overlays */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800">
               {[
                 { id: 'CAD', label: '3D CAD Normal', icon: Box },
@@ -303,6 +353,20 @@ export default function DigitalTwinPage({
                 );
               })}
             </div>
+
+            {/* Expo Mode Toggle Button */}
+            <button
+              onClick={() => setIsExpoMode(!isExpoMode)}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all border ${
+                isExpoMode
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-purple-500 shadow-md shadow-purple-500/20'
+                  : 'bg-slate-900/90 text-slate-400 hover:text-white border-slate-800 hover:border-slate-700'
+              }`}
+              title="Optimize dashboard layout for Project Expo presentation"
+            >
+              <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+              <span>{isExpoMode ? 'EXPO MODE: ACTIVE' : 'ENTER EXPO MODE'}</span>
+            </button>
           </div>
 
         </div>
@@ -458,13 +522,94 @@ export default function DigitalTwinPage({
               </div>
 
             </div>
+
+            {/* System Integration Status Panel */}
+            <div className="bg-[#0f172a] rounded-2xl border border-slate-800 p-4 shadow-xl space-y-3 font-mono text-[10px]">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-800/80">
+                <Activity className="w-4 h-4 text-cyan-400" />
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider">System Integration</h3>
+              </div>
+              
+              <div className="space-y-2 pt-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Android Device</span>
+                  <span className={`font-bold flex items-center gap-1 ${selectedMachine.id.startsWith('MOBILE') && liveMobileTelemetry?.online ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${selectedMachine.id.startsWith('MOBILE') && liveMobileTelemetry?.online ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
+                    {selectedMachine.id.startsWith('MOBILE') && liveMobileTelemetry?.online ? 'ONLINE' : 'OFFLINE'}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Socket.IO Gateway</span>
+                  <span className={`font-bold flex items-center gap-1 ${liveMobileList.socketConnected ? 'text-emerald-400' : 'text-rose-400 animate-pulse'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${liveMobileList.socketConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
+                    {liveMobileList.socketConnected ? 'CONNECTED' : 'DISCONNECTED'}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Backend Server</span>
+                  <span className={`font-bold flex items-center gap-1 ${liveMobileList.backendOnline ? 'text-emerald-400' : 'text-rose-400 animate-pulse'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${liveMobileList.backendOnline ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
+                    {liveMobileList.backendOnline ? 'ONLINE' : 'OFFLINE'}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Telemetry Stream</span>
+                  <span className={`font-bold flex items-center gap-1 ${selectedMachine.id.startsWith('MOBILE') && liveMobileTelemetry?.online ? 'text-cyan-400' : 'text-slate-500'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${selectedMachine.id.startsWith('MOBILE') && liveMobileTelemetry?.online ? 'bg-cyan-400 animate-pulse' : 'bg-slate-600'}`} />
+                    {isDemoMode ? 'SIMULATED' : (selectedMachine.id.startsWith('MOBILE') && liveMobileTelemetry?.online ? 'LIVE' : 'STALE')}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">3D Digital Twin</span>
+                  <span className={`font-bold flex items-center gap-1 ${selectedMachine.id.startsWith('MOBILE') && liveMobileTelemetry?.online ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${selectedMachine.id.startsWith('MOBILE') && liveMobileTelemetry?.online ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+                    {selectedMachine.id.startsWith('MOBILE') && liveMobileTelemetry?.online ? 'SYNCED' : 'NOT SYNCED'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="pt-2 border-t border-slate-800/80 flex justify-between text-[9px] text-slate-500">
+                <span>Last telemetry:</span>
+                <span>
+                  {liveMobileList.lastUpdate ? `${Math.round((Date.now() - liveMobileList.lastUpdate) / 1000)}s ago` : 'Never'}
+                </span>
+              </div>
+            </div>
+
           </div>
         )}
 
         {/* CENTER COLUMN: 3D REAL-TIME DIGITAL TWIN CANVAS */}
         <div className={`${
-          isInspectOpen ? 'lg:col-span-5' : 'lg:col-span-8'
+          isInspectOpen && !isExpoMode ? 'lg:col-span-5' : 'lg:col-span-8'
         } h-[600px] w-full transition-all duration-300 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-[#080d19] relative`}>
+          {/* Simulation Alert Warning Overlay */}
+          {isSimulatingFailure && (
+            <div className="absolute top-4 left-4 right-4 z-20 p-3.5 bg-red-950/95 border border-red-800 rounded-2xl flex items-center justify-between shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 duration-300">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-red-500/25 border border-red-500/30 flex items-center justify-center text-red-400">
+                  <AlertTriangle className="w-5 h-5 animate-bounce" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white font-mono uppercase tracking-wider">⚠ SIMULATION MODE ACTIVE</h4>
+                  <p className="text-[10px] text-red-300 mt-0.5">
+                    {selectedMachine.id.startsWith('MOBILE') ? 'Simulated Battery Thermal Runaway drill active.' : 'Simulated machinery fault injection drill active.'} Device hardware is safe.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsSimulatingFailure(false)}
+                className="py-1.5 px-3.5 bg-red-650 hover:bg-red-500 text-white rounded-xl text-[10px] font-black tracking-widest cursor-pointer uppercase transition-all hover:scale-[1.02] shadow-md border border-red-500/30"
+              >
+                Exit Simulation
+              </button>
+            </div>
+          )}
+
           <MotorViewer 
             viewMode={viewMode}
             setViewMode={setViewMode}
@@ -521,6 +666,14 @@ export default function DigitalTwinPage({
                 <p className="text-xs font-mono text-slate-400 mt-0.5 truncate">
                   {activeMetrics.partNumber}
                 </p>
+
+                {/* Sub-component AI warning statement */}
+                {selectedMachine.id.startsWith('MOBILE') && selectedComponent && (
+                  <div className="mt-3 p-2.5 bg-blue-950/20 border border-blue-900/40 rounded-xl flex items-start gap-2 text-[9px] text-blue-300 font-mono">
+                    <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
+                    <span>AI-DERIVED: Component-level metrics computed locally. Phone broadcasts global telemetry.</span>
+                  </div>
+                )}
               </div>
 
               {/* Health Score & Failure Probability Gauge */}
@@ -530,7 +683,10 @@ export default function DigitalTwinPage({
                   : 'bg-gradient-to-r from-slate-900 to-cyan-950/30 border-slate-800'
               }`}>
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Health Score</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Health Score</span>
+                    <span className="text-[7px] font-mono font-bold px-1 rounded bg-slate-950 text-cyan-400 border border-slate-800 shrink-0">AI-DERIVED</span>
+                  </div>
                   <div className="text-2xl font-black font-mono text-white mt-0.5">
                     <span className={activeMetrics.healthScore < 60 ? 'text-red-400 font-black' : activeMetrics.healthScore > 90 ? 'text-emerald-400' : 'text-amber-400'}>
                       {activeMetrics.healthScore}
@@ -539,7 +695,10 @@ export default function DigitalTwinPage({
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Failure Probability</span>
+                  <div className="flex items-center gap-1.5 justify-end">
+                    <span className="text-[7px] font-mono font-bold px-1 rounded bg-slate-950 text-cyan-400 border border-slate-800 shrink-0">AI-DERIVED</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Failure Probability</span>
+                  </div>
                   <div className={`text-xl font-bold font-mono mt-0.5 ${activeMetrics.failureProbability > 50 ? 'text-red-400 animate-pulse' : 'text-cyan-400'}`}>
                     {activeMetrics.failureProbability}%
                   </div>
@@ -590,40 +749,53 @@ export default function DigitalTwinPage({
                 </button>
               </div>
 
-              {/* TAB 1: Live Component Metrics */}
+              {/* TAB 1: Real-Time Telemetry Data */}
               {activeRightTab === 'TELEMETRY' && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
                     
                     {/* Temperature */}
-                    <div className={`p-3 rounded-xl border ${isSimulatingFailure ? 'bg-red-950/60 border-red-700' : 'bg-slate-900 border-slate-800'}`}>
-                      <div className="text-slate-400 text-[10px] flex items-center gap-1">
-                        <Thermometer className="w-3.5 h-3.5 text-amber-400" /> {selectedMachine.id.startsWith('MOBILE') ? 'SoC / Battery Temp' : 'Temperature'}
+                    <div className={`p-3 rounded-xl border ${isSimulatingFailure ? 'bg-red-950/60 border-red-700' : 'bg-slate-900 border-slate-800'} flex flex-col justify-between`}>
+                      <div className="flex items-center justify-between gap-1 w-full">
+                        <span className="text-slate-400 text-[10px] flex items-center gap-1">
+                          <Thermometer className="w-3.5 h-3.5 text-cyan-400" /> Temp
+                        </span>
+                        {selectedMachine.id.startsWith('MOBILE') ? (
+                          <span className="text-[7px] font-mono font-bold px-1 rounded bg-slate-950 text-emerald-400 border border-slate-800 shrink-0">REAL</span>
+                        ) : (
+                          <span className="text-[7px] font-mono font-bold px-1 rounded bg-slate-950 text-cyan-400 border border-slate-800 shrink-0">AI-DERIVED</span>
+                        )}
                       </div>
-                      <div className={`font-bold font-mono text-sm mt-1 ${isSimulatingFailure ? 'text-red-400' : 'text-white'}`}>
+                      <div className={`font-mono mt-1 ${isExpoMode ? 'text-lg font-black' : 'text-sm font-bold'} ${isSimulatingFailure ? 'text-red-400 animate-pulse' : 'text-white'}`}>
                         {selectedMachine.id.startsWith('MOBILE') && liveMobileTelemetry?.temperature ? `${Number(liveMobileTelemetry.temperature).toFixed(1)}°C` : `${activeMetrics.temperature}°C`}
                       </div>
                     </div>
 
                     {/* Battery or Vibration */}
                     {selectedMachine.id.startsWith('MOBILE') ? (
-                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                        <div className="text-slate-400 text-[10px] flex items-center gap-1">
-                          <Zap className="w-3.5 h-3.5 text-emerald-400" /> Battery Level
+                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+                        <div className="flex items-center justify-between gap-1 w-full">
+                          <span className="text-slate-400 text-[10px] flex items-center gap-1">
+                            <Zap className="w-3.5 h-3.5 text-emerald-400" /> Battery
+                          </span>
+                          <span className="text-[7px] font-mono font-bold px-1 rounded bg-slate-950 text-emerald-400 border border-slate-800 shrink-0">REAL</span>
                         </div>
-                        <div className="font-bold text-emerald-400 font-mono text-sm mt-1 flex items-center gap-1.5">
+                        <div className={`font-mono mt-1 flex items-center gap-1.5 ${isExpoMode ? 'text-lg font-black' : 'text-sm font-bold'} text-emerald-400`}>
                           <span>{Math.round(liveMobileTelemetry?.battery ?? 23)}%</span>
                           {liveMobileTelemetry?.charging && (
-                            <span className="text-[10px] bg-emerald-950 text-emerald-300 px-1.5 py-0.2 rounded border border-emerald-700">CHARGING</span>
+                            <span className="text-[8px] bg-emerald-950 text-emerald-300 px-1 rounded border border-emerald-700 tracking-wider">CHARGING</span>
                           )}
                         </div>
                       </div>
                     ) : (
-                      <div className={`p-3 rounded-xl border ${isSimulatingFailure ? 'bg-red-950/60 border-red-700' : 'bg-slate-900 border-slate-800'}`}>
-                        <div className="text-slate-400 text-[10px] flex items-center gap-1">
-                          <Activity className="w-3.5 h-3.5 text-red-400" /> Vibration RMS
+                      <div className={`p-3 rounded-xl border ${isSimulatingFailure ? 'bg-red-950/60 border-red-700' : 'bg-slate-900 border-slate-800'} flex flex-col justify-between`}>
+                        <div className="flex items-center justify-between gap-1 w-full">
+                          <span className="text-slate-400 text-[10px] flex items-center gap-1">
+                            <Activity className="w-3.5 h-3.5 text-red-400" /> Vibration
+                          </span>
+                          <span className="text-[7px] font-mono font-bold px-1 rounded bg-slate-950 text-cyan-400 border border-slate-800 shrink-0">AI-DERIVED</span>
                         </div>
-                        <div className={`font-bold font-mono text-sm mt-1 ${isSimulatingFailure ? 'text-red-400' : 'text-white'}`}>
+                        <div className={`font-mono mt-1 ${isExpoMode ? 'text-lg font-black' : 'text-sm font-bold'} ${isSimulatingFailure ? 'text-red-400 animate-pulse' : 'text-white'}`}>
                           {activeMetrics.vibration} mm/s
                         </div>
                       </div>
@@ -631,72 +803,191 @@ export default function DigitalTwinPage({
 
                     {/* CPU Load or Speed */}
                     {selectedMachine.id.startsWith('MOBILE') ? (
-                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                        <div className="text-slate-400 text-[10px] flex items-center gap-1">
-                          <Cpu className="w-3.5 h-3.5 text-cyan-400" /> CPU Load
+                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between group relative" title="CPU utilization of the TwinMind monitoring process. Values above 100% indicate usage across multiple CPU cores.">
+                        <div className="flex items-center justify-between gap-1 w-full">
+                          <span className="text-slate-400 text-[10px] flex items-center gap-1">
+                            <Cpu className="w-3.5 h-3.5 text-cyan-400" /> APP CPU
+                          </span>
+                          <span className="text-[7px] font-mono font-bold px-1 rounded bg-slate-950 text-emerald-400 border border-slate-800 shrink-0">REAL</span>
                         </div>
-                        <div className="font-bold text-cyan-300 font-mono text-sm mt-1">
-                          {liveMobileTelemetry?.cpu ? `${Number(liveMobileTelemetry.cpu).toFixed(1)}%` : '19.2%'}
+                        <div className={`font-mono mt-1 ${isExpoMode ? 'text-lg font-black' : 'text-sm font-bold'} text-cyan-300`}>
+                          {`${Number(liveMobileTelemetry?.cpuUsage ?? liveMobileTelemetry?.cpu ?? 19.2).toFixed(1)}%`}
                         </div>
                       </div>
                     ) : (
-                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                        <div className="text-slate-400 text-[10px] flex items-center gap-1">
-                          <Gauge className="w-3.5 h-3.5 text-blue-400" /> Rotational Speed
+                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+                        <div className="flex items-center justify-between gap-1 w-full">
+                          <span className="text-slate-400 text-[10px] flex items-center gap-1">
+                            <Gauge className="w-3.5 h-3.5 text-blue-400" /> Speed
+                          </span>
+                          <span className="text-[7px] font-mono font-bold px-1 rounded bg-slate-950 text-cyan-400 border border-slate-800 shrink-0">AI-DERIVED</span>
                         </div>
-                        <div className="font-bold text-white font-mono text-sm mt-1">{activeMetrics.rpm || '1,480 RPM'}</div>
+                        <div className={`font-mono mt-1 ${isExpoMode ? 'text-lg font-black' : 'text-sm font-bold'} text-white`}>
+                          {activeMetrics.rpm || '1,480 RPM'}
+                        </div>
                       </div>
                     )}
 
                     {/* RAM or Pressure */}
                     {selectedMachine.id.startsWith('MOBILE') ? (
-                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                        <div className="text-slate-400 text-[10px] flex items-center gap-1">
-                          <Layers3 className="w-3.5 h-3.5 text-purple-400" /> RAM Memory
+                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+                        <div className="flex items-center justify-between gap-1 w-full">
+                          <span className="text-slate-400 text-[10px] flex items-center gap-1">
+                            <Layers3 className="w-3.5 h-3.5 text-purple-400" /> RAM Load
+                          </span>
+                          <span className="text-[7px] font-mono font-bold px-1 rounded bg-slate-950 text-emerald-400 border border-slate-800 shrink-0">REAL</span>
                         </div>
-                        <div className="font-bold text-purple-300 font-mono text-sm mt-1">
-                          {liveMobileTelemetry?.ram ? `${Number(liveMobileTelemetry.ram).toFixed(1)}%` : '44.5%'}
+                        <div className={`font-mono mt-1 flex flex-col`}>
+                          <span className={`${isExpoMode ? 'text-lg font-black' : 'text-sm font-bold'} text-purple-300`}>
+                            {`${Number(liveMobileTelemetry?.ramUsage ?? liveMobileTelemetry?.ram ?? 44.5).toFixed(1)}%`}
+                          </span>
+                          {liveMobileTelemetry?.ramTotal && (
+                            <span className="text-[9px] text-slate-500 mt-0.5">
+                              {Number(liveMobileTelemetry.ramTotal) > 100000 
+                                ? `${(Number(liveMobileTelemetry.ramUsed) / (1024 * 1024)).toFixed(1)} GB / ${(Number(liveMobileTelemetry.ramTotal) / (1024 * 1024)).toFixed(0)} GB`
+                                : `${(Number(liveMobileTelemetry.ramUsed) / 1024).toFixed(1)} GB / ${(Number(liveMobileTelemetry.ramTotal) / 1024).toFixed(0)} GB`}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ) : (
-                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                        <div className="text-slate-400 text-[10px] flex items-center gap-1">
-                          <Layers3 className="w-3.5 h-3.5 text-cyan-400" /> Pressure
+                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+                        <div className="flex items-center justify-between gap-1 w-full">
+                          <span className="text-slate-400 text-[10px] flex items-center gap-1">
+                            <Layers3 className="w-3.5 h-3.5 text-cyan-400" /> Pressure
+                          </span>
+                          <span className="text-[7px] font-mono font-bold px-1 rounded bg-slate-950 text-cyan-400 border border-slate-800 shrink-0">AI-DERIVED</span>
                         </div>
-                        <div className="font-bold text-white font-mono text-sm mt-1">{activeMetrics.pressure || 'Nominal'}</div>
+                        <div className={`font-mono mt-1 ${isExpoMode ? 'text-lg font-black' : 'text-sm font-bold'} text-white`}>
+                          {activeMetrics.pressure || 'Nominal'}
+                        </div>
                       </div>
                     )}
 
                     {/* Network / Current */}
                     {selectedMachine.id.startsWith('MOBILE') ? (
-                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                        <div className="text-slate-400 text-[10px] flex items-center gap-1">
-                          <Radio className="w-3.5 h-3.5 text-blue-400" /> Network Stream
+                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+                        <div className="flex items-center justify-between gap-1 w-full">
+                          <span className="text-slate-400 text-[10px] flex items-center gap-1">
+                            <Radio className="w-3.5 h-3.5 text-blue-400" /> Network
+                          </span>
+                          <span className="text-[7px] font-mono font-bold px-1 rounded bg-slate-950 text-emerald-400 border border-slate-800 shrink-0">REAL</span>
                         </div>
-                        <div className="font-bold text-blue-300 font-mono text-xs mt-1 truncate">
-                          {liveMobileTelemetry?.online ? 'Socket.IO (100Hz)' : 'Wi-Fi Nominal'}
+                        <div className={`font-mono mt-1 truncate ${isExpoMode ? 'text-base font-black' : 'text-xs font-semibold'} text-blue-300`}>
+                          {liveMobileTelemetry?.network || 'WiFi'}
                         </div>
                       </div>
                     ) : (
-                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                        <div className="text-slate-400 text-[10px] flex items-center gap-1">
-                          <Zap className="w-3.5 h-3.5 text-purple-400" /> Motor Current
+                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+                        <div className="flex items-center justify-between gap-1 w-full">
+                          <span className="text-slate-400 text-[10px] flex items-center gap-1">
+                            <Zap className="w-3.5 h-3.5 text-purple-400" /> Current
+                          </span>
+                          <span className="text-[7px] font-mono font-bold px-1 rounded bg-slate-950 text-cyan-400 border border-slate-800 shrink-0">AI-DERIVED</span>
                         </div>
-                        <div className="font-bold text-white font-mono text-sm mt-1">{activeMetrics.current || '28.5 A'}</div>
+                        <div className={`font-mono mt-1 ${isExpoMode ? 'text-lg font-black' : 'text-sm font-bold'} text-white`}>
+                          {activeMetrics.current || '28.5 A'}
+                        </div>
                       </div>
                     )}
 
                     {/* RUL */}
-                    <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                      <div className="text-slate-400 text-[10px] flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-emerald-400" /> {selectedMachine.id.startsWith('MOBILE') ? 'Battery RUL' : 'Remaining RUL'}
+                    <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+                      <div className="flex items-center justify-between gap-1 w-full">
+                        <span className="text-slate-400 text-[10px] flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-emerald-400" /> {selectedMachine.id.startsWith('MOBILE') ? 'Battery RUL' : 'RUL'}
+                        </span>
+                        <span className="text-[7px] font-mono font-bold px-1 rounded bg-slate-950 text-cyan-400 border border-slate-800 shrink-0">AI-DERIVED</span>
                       </div>
-                      <div className={`font-bold font-mono text-sm mt-1 ${activeMetrics.rulHours < 200 ? 'text-red-400' : 'text-emerald-400'}`}>
+                      <div className={`font-mono mt-1 ${isExpoMode ? 'text-lg font-black' : 'text-sm font-bold'} ${activeMetrics.rulHours < 200 ? 'text-red-400' : 'text-emerald-400'}`}>
                         {activeMetrics.rulHours} hrs
                       </div>
                     </div>
 
                   </div>
+
+                  {/* LIVE DEVICE TELEMETRY CHART */}
+                  {selectedMachine.id.startsWith('MOBILE') && (
+                    <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-850">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">LIVE TELEMETRY CHART</span>
+                        <span className="text-[7px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-950 text-emerald-400 border border-emerald-800 uppercase tracking-widest">
+                          {isDemoMode ? 'SIMULATION' : 'REAL-TIME'}
+                        </span>
+                      </div>
+                      
+                      <div className="h-28 w-full">
+                        {liveMobileTelemetry?.history && liveMobileTelemetry.history.length > 1 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={liveMobileTelemetry.history}>
+                              <XAxis dataKey="time" hide />
+                              <Tooltip 
+                                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '9px' }} 
+                              />
+                              <Line type="monotone" dataKey="temperature" name="Temp (°C)" stroke="#06b6d4" strokeWidth={1.5} dot={false} />
+                              <Line type="monotone" dataKey="battery" name="Battery (%)" stroke="#10b981" strokeWidth={1.5} dot={false} />
+                              <Line type="monotone" dataKey="cpuUsage" name="APP CPU (%)" stroke="#a855f7" strokeWidth={1.5} dot={false} />
+                              <Line type="monotone" dataKey="ramUsage" name="RAM Load (%)" stroke="#ec4899" strokeWidth={1.5} dot={false} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="h-full flex items-center justify-center text-[9px] text-slate-500 font-mono">
+                            Waiting for telemetry buffers...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* COMPACT HEALTH SUMMARY */}
+                  {selectedMachine.id.startsWith('MOBILE') && (
+                    <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-850">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">HEALTH SUMMARY (DERIVED)</span>
+                        <span className={`text-[9px] font-bold flex items-center gap-1 ${liveMobileTelemetry?.online ? 'text-emerald-400' : 'text-slate-500'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${liveMobileTelemetry?.online ? 'bg-emerald-400 animate-pulse' : 'bg-slate-650'}`} />
+                          {liveMobileTelemetry?.online ? 'ONLINE' : 'OFFLINE'}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10px] font-mono pt-1">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Battery:</span>
+                          <span className={liveMobileTelemetry?.battery < 20 ? 'text-rose-400 font-bold animate-pulse' : 'text-emerald-400'}>
+                            {liveMobileTelemetry?.battery < 20 ? 'LOW' : 'GOOD'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Temp:</span>
+                          <span className={liveMobileTelemetry?.temperature > 45 ? 'text-rose-400 font-bold animate-pulse' : 'text-emerald-400'}>
+                            {liveMobileTelemetry?.temperature > 45 ? 'HIGH' : 'NORMAL'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">APP CPU:</span>
+                          <span className={(liveMobileTelemetry?.cpuUsage || liveMobileTelemetry?.cpu || 0) > 80 ? 'text-rose-400 font-bold animate-pulse' : 'text-emerald-400'}>
+                            {(liveMobileTelemetry?.cpuUsage || liveMobileTelemetry?.cpu || 0) > 80 ? 'HIGH' : 'NORMAL'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">RAM:</span>
+                          <span className={(liveMobileTelemetry?.ramUsage || liveMobileTelemetry?.ram || 0) > 80 ? 'text-rose-400 font-bold animate-pulse' : 'text-emerald-400'}>
+                            {(liveMobileTelemetry?.ramUsage || liveMobileTelemetry?.ram || 0) > 80 ? 'HIGH' : 'NORMAL'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Network:</span>
+                          <span className="text-emerald-400">CONNECTED</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Twin Sync:</span>
+                          <span className={telemetryStatus === 'LIVE' ? 'text-emerald-400 animate-pulse' : 'text-slate-500'}>
+                            {telemetryStatus === 'LIVE' ? 'SYNCHRONIZED' : 'NOT SYNCED'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Status Notes */}
                   <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs space-y-1">
@@ -835,8 +1126,12 @@ export default function DigitalTwinPage({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-cyan-400" />
-            <h3 className="text-xs font-bold text-white">
-              Real-Time Sensor Telemetry Timeline: <span className="text-cyan-400">{activeMetrics.name}</span>
+            <h3 className="text-xs font-bold text-white flex flex-wrap items-center gap-2">
+              <span>Real-Time Sensor Telemetry Timeline:</span>
+              <span className="text-cyan-400">{activeMetrics.name}</span>
+              <span className="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-950 border border-slate-850 text-slate-500 uppercase tracking-widest ml-1">
+                {selectedMachine.id.startsWith('MOBILE') ? (isDemoMode ? 'SIMULATED DATA' : 'AI-DERIVED DRIFT') : 'DEMO HISTORICAL TRENDS'}
+              </span>
             </h3>
           </div>
           <div className="flex items-center gap-4 text-xs font-semibold">

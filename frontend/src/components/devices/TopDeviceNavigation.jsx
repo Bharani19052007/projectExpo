@@ -19,30 +19,32 @@ export default function TopDeviceNavigation({ activeType, onChangeType, isDemoMo
         </div>
 
         {/* Demo Mode Toggle */}
-        <div className="flex items-center gap-1.5 p-1 bg-[#020617] rounded-xl border border-[#1e293b]">
-          <button
-            onClick={() => onToggleDemoMode()}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-              isDemoMode
-                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                : 'text-[#64748b] hover:text-white hover:bg-white/5 border border-transparent'
-            }`}
-          >
-            <Zap className="w-3.5 h-3.5" />
-            <span>DEMO MODE</span>
-          </button>
-          <button
-            onClick={() => onToggleDemoMode()}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-              !isDemoMode
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : 'text-[#64748b] hover:text-white hover:bg-white/5 border border-transparent'
-            }`}
-          >
-            <Server className="w-3.5 h-3.5" />
-            <span>REAL DEVICE MODE</span>
-          </button>
-        </div>
+        {activeType !== 'MOBILE' && (
+          <div className="flex items-center gap-1.5 p-1 bg-[#020617] rounded-xl border border-[#1e293b]">
+            <button
+              onClick={() => onToggleDemoMode()}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                isDemoMode
+                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                  : 'text-[#64748b] hover:text-white hover:bg-white/5 border border-transparent'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>DEMO MODE</span>
+            </button>
+            <button
+              onClick={() => onToggleDemoMode()}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                !isDemoMode
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'text-[#64748b] hover:text-white hover:bg-white/5 border border-transparent'
+              }`}
+            >
+              <Server className="w-3.5 h-3.5" />
+              <span>REAL DEVICE MODE</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center bg-[#020617] p-1 rounded-xl border border-[#1e293b]">

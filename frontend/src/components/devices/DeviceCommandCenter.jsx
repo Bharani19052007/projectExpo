@@ -4,9 +4,14 @@ import MobileTwinView from './MobileTwinView';
 import LaptopTwinView from './LaptopTwinView';
 import MonitorTwinView from './MonitorTwinView';
 
-export default function DeviceCommandCenter({ onOpenDigitalTwin }) {
+export default function DeviceCommandCenter({ 
+  onOpenDigitalTwin,
+  isDemoMode,
+  setIsDemoMode,
+  isExpoMode,
+  setIsExpoMode
+}) {
   const [activeDeviceType, setActiveDeviceType] = useState('MOBILE'); // 'MOBILE' | 'LAPTOP' | 'MONITOR'
-  const [isDemoMode, setIsDemoMode] = useState(false); // Default to Real Device Mode
 
   return (
     <div className="relative w-full h-full bg-[#020617] text-white flex flex-col font-sans overflow-hidden">
@@ -17,10 +22,19 @@ export default function DeviceCommandCenter({ onOpenDigitalTwin }) {
         onToggleDemoMode={() => setIsDemoMode(!isDemoMode)}
       />
       <div className="flex-1 relative overflow-hidden">
-        {activeDeviceType === 'MOBILE' && <MobileTwinView isDemoMode={isDemoMode} onOpenDigitalTwin={onOpenDigitalTwin} />}
+        {activeDeviceType === 'MOBILE' && (
+          <MobileTwinView 
+            isDemoMode={isDemoMode} 
+            setIsDemoMode={setIsDemoMode}
+            isExpoMode={isExpoMode}
+            setIsExpoMode={setIsExpoMode}
+            onOpenDigitalTwin={onOpenDigitalTwin} 
+          />
+        )}
         {activeDeviceType === 'LAPTOP' && <LaptopTwinView isDemoMode={isDemoMode} onOpenDigitalTwin={onOpenDigitalTwin} />}
         {activeDeviceType === 'MONITOR' && <MonitorTwinView isDemoMode={isDemoMode} onOpenDigitalTwin={onOpenDigitalTwin} />}
       </div>
     </div>
   );
 }
+

@@ -1,5 +1,7 @@
 import React, { Suspense, useState, useCallback } from 'react';
-import { Activity, Loader2, Factory, Smartphone, Cpu, Library, Sparkles } from 'lucide-react';
+import { Home, Activity, Loader2, Factory, Smartphone, Cpu, Library, Sparkles } from 'lucide-react';
+import LandingPage from './components/pages/LandingPage';
+import HomePage from './components/pages/HomePage';
 import DigitalTwinPage from './components/pages/DigitalTwinPage';
 import IndustrialOperationsCenter from './components/operations/IndustrialOperationsCenter';
 import DeviceCommandCenter from './components/devices/DeviceCommandCenter';
@@ -29,14 +31,21 @@ function OperationsCenterLoader() {
 }
 
 export default function App() {
-  // 'MACHINES' | 'FACTORY' | 'LIBRARY' | 'DEVICES'
-  const [activeModule, setActiveModule] = useState('MACHINES');
+  // 'HOME' | 'MACHINES' | 'FACTORY' | 'LIBRARY' | 'DEVICES'
+  const [activeModule, setActiveModule] = useState('HOME');
   const [selectedMachine, setSelectedMachine] = useState(allIndustrialMachines[0]);
+  const [isEntered, setIsEntered] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isExpoMode, setIsExpoMode] = useState(false);
 
   const handleOpenDigitalTwin = useCallback((machine) => {
     setSelectedMachine(machine);
     setActiveModule('MACHINES');
   }, []);
+
+  if (!isEntered) {
+    return <LandingPage onGetStarted={() => setIsEntered(true)} />;
+  }
 
   return (
     <div className="flex w-screen h-screen overflow-hidden bg-[#0a0f1d]">
@@ -50,6 +59,19 @@ export default function App() {
           
           {/* Module Switcher Icons */}
           <div className="flex flex-col gap-3">
+            {/* 0. HOME OPERATIONS HUB */}
+            <button
+              onClick={() => setActiveModule('HOME')}
+              className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+                activeModule === 'HOME'
+                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400/50 shadow-lg shadow-cyan-500/20'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+              title="TwinMind Enterprise Home Hub"
+            >
+              <Home className="w-6 h-6" />
+            </button>
+            
             {/* 1. MACHINE & COMPONENT PARTS STUDIO (PRIMARY) */}
             <button
               onClick={() => setActiveModule('MACHINES')}
@@ -114,11 +136,22 @@ export default function App() {
       {/* Main Content Viewport */}
       <div className="flex-1 relative overflow-hidden">
         <Suspense fallback={<OperationsCenterLoader />}>
+          {activeModule === 'HOME' && (
+            <HomePage
+              setActiveModule={setActiveModule}
+              setSelectedMachine={setSelectedMachine}
+            />
+          )}
+
           {activeModule === 'MACHINES' && (
             <DigitalTwinPage
               selectedMachine={selectedMachine}
               onSelectMachine={setSelectedMachine}
               onSwitchMachine={setSelectedMachine}
+              isDemoMode={isDemoMode}
+              setIsDemoMode={setIsDemoMode}
+              isExpoMode={isExpoMode}
+              setIsExpoMode={setIsExpoMode}
             />
           )}
 
@@ -147,6 +180,10 @@ export default function App() {
                 setSelectedMachine(target);
                 setActiveModule('MACHINES');
               }}
+              isDemoMode={isDemoMode}
+              setIsDemoMode={setIsDemoMode}
+              isExpoMode={isExpoMode}
+              setIsExpoMode={setIsExpoMode}
             />
           )}
         </Suspense>

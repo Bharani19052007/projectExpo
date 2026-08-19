@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function TelemetryCard({ title, value, unit, icon: Icon, color = 'blue' }) {
+export default function TelemetryCard({ title, value, unit, icon: Icon, color = 'blue', subtext, tooltip }) {
   const colorMap = {
     blue: 'text-[#38bdf8] bg-[#38bdf8]/10 border-[#38bdf8]/20',
     emerald: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
@@ -12,15 +12,22 @@ export default function TelemetryCard({ title, value, unit, icon: Icon, color = 
   const theme = colorMap[color] || colorMap.blue;
 
   return (
-    <div className={`flex items-center justify-between p-3 rounded-xl border ${theme} backdrop-blur-md`}>
-      <div className="flex items-center gap-3">
-        {Icon && <Icon className="w-5 h-5 opacity-80" />}
-        <span className="text-xs font-semibold uppercase tracking-wider opacity-80">{title}</span>
+    <div className={`flex flex-col justify-between p-3 rounded-xl border ${theme} backdrop-blur-md relative group`} title={tooltip}>
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-2.5">
+          {Icon && <Icon className="w-4 h-4 opacity-80 shrink-0" />}
+          <span className="text-[10px] font-bold uppercase tracking-wider opacity-85">{title}</span>
+        </div>
+        <div className="font-mono font-bold flex items-baseline">
+          <span className="text-sm">{value}</span>
+          {unit && <span className="text-[9px] ml-0.5 opacity-70">{unit}</span>}
+        </div>
       </div>
-      <div className="font-mono font-bold">
-        <span className="text-lg">{value}</span>
-        {unit && <span className="text-xs ml-1 opacity-70">{unit}</span>}
-      </div>
+      {subtext && (
+        <div className="text-[9px] text-right font-mono opacity-60 mt-1">
+          {subtext}
+        </div>
+      )}
     </div>
   );
 }
