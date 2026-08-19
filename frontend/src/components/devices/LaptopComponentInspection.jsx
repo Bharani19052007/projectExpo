@@ -40,18 +40,20 @@ export default function LaptopComponentInspection({ telemetry, selectedComponent
     return 'text-rose-400 border-rose-500/30 bg-rose-500/10';
   };
 
+  const ramTotalDisplay = telemetry.ramTotal ? `${telemetry.ramTotal}GB` : '16GB';
+  const cpuDisplay = telemetry.cpuModel || (telemetry.hostname ? `${telemetry.hostname} CPU` : 'Intel® Core™ i5-10300H / AMD Ryzen™ 7');
+
   const components = [
-    { id: 'CPU', name: 'Intel Core i9 CPU', icon: Cpu, desc: 'Central processing and core thermals.' },
-    { id: 'GPU', name: 'NVIDIA RTX GPU', icon: Cpu, desc: 'Graphics render core and thermal load.' },
-    { id: 'RAM', name: '16GB DDR5 RAM', icon: MemoryStick, desc: 'System memory footprint and availability.' },
-    { id: 'SSD', name: '1TB NVMe SSD', icon: Database, desc: 'Storage capacity and disk temperature.' },
-    { id: 'Battery', name: '80Wh Lithium Ion Battery', icon: Battery, desc: 'Power capacity, health rating, and charging.' },
-    { id: 'Cooling fan', name: 'Dual Jet Blowers', icon: Fan, desc: 'Active cooling exhaust fan performance.' },
-    { id: 'Display', name: '15.6" OLED Panel', icon: Tv, desc: 'Screen panel status and open-angle.' },
-    { id: 'Keyboard', name: 'Chiclet Backlit Keyboard', icon: Keyboard, desc: 'Input keys matrix state.' },
-    { id: 'Touchpad', name: 'Precision Glass Trackpad', icon: MousePointerClick, desc: 'Gesture recognition controller.' },
-    { id: 'Wi-Fi module', name: 'Intel Wi-Fi 6E Chip', icon: Wifi, desc: 'Wireless network controller and signal.' },
-    { id: 'Charging system', name: 'USB-C Power Delivery', icon: Zap, desc: 'Regulates power draw and PD voltage.' },
+    { id: 'CPU', name: cpuDisplay, icon: Cpu, desc: 'Central processing unit & system execution telemetry.' },
+    { id: 'GPU', name: 'NVIDIA® GeForce® GTX 1650 (4GB GDDR6)', icon: Cpu, desc: 'Dedicated Turing architecture GPU with dynamic Boost Clock.' },
+    { id: 'RAM', name: `${ramTotalDisplay} DDR4 3200MHz Dual-Channel`, icon: MemoryStick, desc: 'High-bandwidth gaming memory footprint and system availability.' },
+    { id: 'SSD', name: '512GB PCIe® 3.0 NVMe™ M.2 SSD', icon: Database, desc: 'Ultra-fast solid state drive storage capacity and throughput.' },
+    { id: 'Battery', name: '56Wh 4-Cell Li-ion (150W Fast Charge)', icon: Battery, desc: 'High-drain battery pack with ASUS Battery Health Charging protection.' },
+    { id: 'Display', name: '15.6" FHD 144Hz IPS Anti-Glare Display', icon: Tv, desc: 'Fast refresh rate gaming display panel with adaptive sync.' },
+    { id: 'Keyboard', name: '4-Zone Aura Sync RGB (Transparent WASD)', icon: Keyboard, desc: 'Desktop-style gaming keyboard with Overstroke technology and highlighted WASD keys.' },
+    { id: 'Touchpad', name: 'Precision Glass Touchpad', icon: MousePointerClick, desc: 'Large smooth surface with multi-touch Windows Precision gesture recognition.' },
+    { id: 'Wi-Fi module', name: 'Intel® Wi-Fi 6 (802.11ax) + RangeBoost', icon: Wifi, desc: 'Dual-band Wi-Fi 6 wireless controller with ROG RangeBoost antenna array.' },
+    { id: 'Charging system', name: '150W Dedicated ROG Barrel / Type-C PD', icon: Zap, desc: 'Power regulation stage supplying high-wattage current for GPU Boost.' },
   ];
 
   return (

@@ -28,20 +28,13 @@ export default function LaptopTelemetryPanel({ telemetry }) {
         System Live Telemetry
       </h3>
 
-      <div className="grid grid-cols-2 gap-3 mb-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
         <TelemetryCard 
           title="CPU Usage" 
           value={telemetry.cpu || 0} 
           unit="%" 
           icon={Cpu} 
           color={telemetry.cpu > 85 ? 'rose' : (telemetry.cpu > 60 ? 'amber' : 'blue')} 
-        />
-        <TelemetryCard 
-          title="CPU Temp" 
-          value={cpuTemp} 
-          unit="°C" 
-          icon={Thermometer} 
-          color={cpuTemp > 80 ? 'rose' : (cpuTemp > 65 ? 'amber' : 'emerald')} 
         />
         <TelemetryCard 
           title="GPU Usage" 
@@ -77,13 +70,6 @@ export default function LaptopTelemetryPanel({ telemetry }) {
           unit="%" 
           icon={Battery} 
           color={batteryPct < 20 ? 'rose' : (telemetry.charging ? 'emerald' : 'slate')} 
-        />
-        <TelemetryCard 
-          title="Cooling Fan" 
-          value={fanRPM} 
-          unit="RPM" 
-          icon={Fan} 
-          color={fanRPM > 5000 ? 'rose' : (fanRPM > 3500 ? 'amber' : 'slate')} 
         />
       </div>
 

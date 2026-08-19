@@ -119,6 +119,23 @@ export function useDeviceTelemetry(deviceType, isDemoMode = true) {
           status: evaluateStatus(mappedData)
         };
 
+        if (deviceType === 'LAPTOP') {
+          // Keep only Dhanush_lap / real laptop device and eliminate any old mock device
+          const filtered = currentDevices.filter(d => d.id === 'TWIN-LAPTOP-4C18F' || d.id.toLowerCase() === incomingId.toLowerCase() || d.isRealDevice);
+          const existingIndex = filtered.findIndex(
+            d => d.id.toLowerCase() === incomingId.toLowerCase() || d.id === 'TWIN-LAPTOP-4C18F'
+          );
+          if (existingIndex >= 0) {
+            filtered[existingIndex] = {
+              ...filtered[existingIndex],
+              ...deviceWithStatus,
+              name: mappedData.name || 'Dhanush_lap'
+            };
+            return filtered;
+          }
+          return [deviceWithStatus];
+        }
+
         const existingIndex = currentDevices.findIndex(
           d => d.id.toLowerCase() === incomingId.toLowerCase()
         );
@@ -131,7 +148,7 @@ export function useDeviceTelemetry(deviceType, isDemoMode = true) {
           };
           return updatedList;
         } else {
-          // Dynamic device discovery: append new device from Laptop B!
+          // Dynamic device discovery
           return [...currentDevices, deviceWithStatus];
         }
       });

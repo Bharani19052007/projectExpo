@@ -5,8 +5,8 @@ import LaptopTwinView from './LaptopTwinView';
 import MonitorTwinView from './MonitorTwinView';
 
 export default function DeviceCommandCenter() {
-  const [activeDeviceType, setActiveDeviceType] = useState('MOBILE'); // 'MOBILE' | 'LAPTOP' | 'MONITOR'
-  const [isDemoMode, setIsDemoMode] = useState(true);
+  const [activeDeviceType, setActiveDeviceType] = useState('LAPTOP'); // 'MOBILE' | 'LAPTOP' | 'MONITOR'
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   return (
     <div className="relative w-full h-full bg-[#020617] text-white flex flex-col font-sans overflow-hidden">

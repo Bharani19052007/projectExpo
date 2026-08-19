@@ -120,14 +120,14 @@ export default function LaptopTwinView({ isDemoMode }) {
         <div>
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-extrabold tracking-wider uppercase text-white flex items-center gap-2">
-              <Tv className="w-6 h-6 text-sky-400" />
-              Laptop Digital Twin {laptopDevice.name && `[${laptopDevice.name}]`}
+              <Tv className="w-6 h-6 text-red-500" />
+              ROG Strix G15 • GTX 1650 Digital Twin {laptopDevice.name && `[${laptopDevice.name}]`}
             </h2>
             <DeviceStatusBadge status={isOnline ? laptopDevice.status : 'offline'} />
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            {isOnline ? 'Real-time visual state sync and predictive analytics for device: ' : 'Showing last cached state for disconnected device: '}
-            <span className="font-mono text-sky-400">{laptopDevice.id}</span>
+            {isOnline ? 'Real-time telemetry and 3D state sync for ROG Strix GTX 1650: ' : 'Showing last cached state for disconnected ROG Strix device: '}
+            <span className="font-mono text-red-400 font-bold">{laptopDevice.id}</span>
           </p>
         </div>
 
@@ -221,11 +221,14 @@ export default function LaptopTwinView({ isDemoMode }) {
 
           {/* Three.js R3F Canvas container */}
           <div className="flex-1 relative bg-gradient-to-b from-[#0f172a] to-[#020617]">
-            <Canvas camera={{ position: [0, 2.2, 4.5], fov: 42 }}>
-              <ambientLight intensity={0.6} />
-              <spotLight position={[6, 12, 6]} intensity={1.8} angle={0.3} penumbra={1} castShadow />
-              <pointLight position={[-4, 4, -4]} intensity={0.8} />
-              <Environment preset="city" />
+            <Canvas 
+              camera={{ position: [0, 2.0, 4.5], fov: 42 }}
+              gl={{ antialias: true, powerPreference: 'default' }}
+            >
+              <ambientLight intensity={1.2} />
+              <directionalLight position={[5, 8, 5]} intensity={1.5} />
+              <directionalLight position={[-5, 5, -5]} intensity={0.8} color="#38bdf8" />
+              <pointLight position={[0, 4, 3]} intensity={1.0} />
               
               <Laptop 
                 status={laptopDevice.status} 
@@ -236,12 +239,12 @@ export default function LaptopTwinView({ isDemoMode }) {
                 lidAngle={lidAngle}
               />
               
-              <ContactShadows position={[0, -0.6, 0]} opacity={0.6} scale={10} blur={2.2} far={2.0} />
+              <ContactShadows position={[0, -0.6, 0]} opacity={0.5} scale={10} blur={2.0} far={2.0} />
               <OrbitControls 
                 enableZoom={true} 
-                enablePan={false} 
-                maxPolarAngle={Math.PI / 2.1} 
-                minPolarAngle={Math.PI / 4.5} 
+                enablePan={true} 
+                maxPolarAngle={Math.PI / 1.85} 
+                minPolarAngle={0.1} 
               />
             </Canvas>
 
