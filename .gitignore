@@ -8,4 +8,4 @@ dist/
 **/venv/
 **/.venv/
 *.pyc
-*.pyd
+*.pydgit 
