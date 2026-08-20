@@ -143,31 +143,23 @@ export default function LaptopTwinView({ isDemoMode }) {
         <span>{bannerText}</span>
       </div>
 
-            <div className="h-80 relative bg-gradient-to-b from-[#0f172a] to-[#020617] border-b border-[#1e293b]">
-              <Canvas camera={{ position: [0, 2, 5], fov: 45 }}>
-                <ambientLight intensity={0.6} />
-                <spotLight position={[5, 10, 5]} intensity={1.5} />
-                <Environment preset="city" />
-                <Laptop status={device.status} telemetry={device} />
-                <ContactShadows position={[0, -0.1, 0]} opacity={0.6} scale={10} blur={2.5} />
-                <OrbitControls enableZoom={true} enablePan={false} maxPolarAngle={Math.PI / 2} minPolarAngle={0} />
-              </Canvas>
-              <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/40 rounded text-[10px] text-white/50 backdrop-blur-sm pointer-events-none">
-                Interactive 3D
-              </div>
-
-              {/* Inspect internals mode toggle */}
-              <button
-                onClick={() => setInspectInternals(!inspectInternals)}
-                className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 ${
-                  inspectInternals 
-                    ? 'bg-sky-500/20 border-sky-400 text-sky-400 shadow-md shadow-sky-500/10' 
-                    : 'bg-slate-900/60 border-[#1e293b] text-slate-400 hover:text-white'
-                }`}
-              >
-                {inspectInternals ? 'HIDE INTERNALS' : 'INSPECT INTERNALS'}
-              </button>
-            </div>
+      {/* 2. MAIN CONTENT GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[500px]">
+        {/* LEFT COLUMN: 3D VIEWER (lg:span-7) */}
+        <div className="lg:col-span-7 flex flex-col bg-[#0a0f1d]/60 border border-[#1e293b] rounded-2xl overflow-hidden backdrop-blur-md">
+          {/* Header Toolbar */}
+          <div className="p-3 border-b border-[#1e293b] bg-[#020617]/50 flex justify-between items-center">
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">3D Visualization</span>
+            <button
+              onClick={() => setInspectInternals(!inspectInternals)}
+              className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 ${
+                inspectInternals 
+                  ? 'bg-sky-500/20 border-sky-400 text-sky-400 shadow-md shadow-sky-500/10' 
+                  : 'bg-slate-900/60 border-[#1e293b] text-slate-400 hover:text-white'
+              }`}
+            >
+              {inspectInternals ? 'HIDE INTERNALS' : 'INSPECT INTERNALS'}
+            </button>
           </div>
 
           {/* Three.js R3F Canvas container */}
