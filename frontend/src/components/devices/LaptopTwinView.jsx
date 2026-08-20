@@ -1,60 +1,311 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
-import { Battery, Thermometer, Cpu, MemoryStick, Wifi } from 'lucide-react';
+import { 
+  Eye, Tv, Activity, RefreshCw, Info 
+} from 'lucide-react';
+import { 
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend 
+} from 'recharts';
+
 import Laptop from '../3d/Laptop';
-import TelemetryCard from './TelemetryCard';
 import DeviceStatusBadge from './DeviceStatusBadge';
 import { useDeviceTelemetry } from '../../services/deviceTelemetry';
+import LaptopTelemetryPanel from './LaptopTelemetryPanel';
+import LaptopHealthPanel from './LaptopHealthPanel';
+import LaptopComponentInspection from './LaptopComponentInspection';
+import LaptopAlerts from './LaptopAlerts';
 
 export default function LaptopTwinView({ isDemoMode }) {
   const devices = useDeviceTelemetry('LAPTOP', isDemoMode);
+  const laptopDevice = devices && devices.length > 0 ? devices[0] : null;
+
+  // Selected component in 3D / Inspector
+  const [selectedComponent, setSelectedComponent] = useState(null);
+  
+  // 3D Controls
+  const [inspectInternals, setInspectInternals] = useState(false);
+  const [lidAngle, setLidAngle] = useState(110); // Default open angle is 110 degrees
+
+  // Telemetry History state for Recharts
+  const [history, setHistory] = useState([]);
+  const lastUpdatedRef = useRef(null);
+
+  // A local live tick to force rendering of offline timer every second
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick(t => t + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Sync telemetry updates into history buffer
+  useEffect(() => {
+    if (!laptopDevice || laptopDevice.online === false) return;
+
+    // Check if the telemetry has updated since last save (limit updates to 1 per sec)
+    const timestampKey = `${laptopDevice.cpu}-${laptopDevice.cpuTemp}-${laptopDevice.gpuTemp}-${laptopDevice.ram}`;
+    if (lastUpdatedRef.current === timestampKey) return;
+    lastUpdatedRef.current = timestampKey;
+
+    setHistory((prevHistory) => {
+      const timeLabel = new Date().toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+
+      const nextHistory = [
+        ...prevHistory,
+        {
+          time: timeLabel,
+          cpu: laptopDevice.cpu || 0,
+          gpu: laptopDevice.gpu || 0,
+          cpuTemp: laptopDevice.cpuTemp || laptopDevice.temperature || 0,
+          gpuTemp: laptopDevice.gpuTemp || 0,
+          ram: laptopDevice.ram || 0,
+          battery: laptopDevice.battery || 0
+        }
+      ];
+
+      // Keep only the last 15 data points
+      if (nextHistory.length > 15) {
+        return nextHistory.slice(nextHistory.length - 15);
+      }
+      return nextHistory;
+    });
+  }, [laptopDevice]);
+
+  if (!laptopDevice) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-[#020617] gap-3">
+        <RefreshCw className="w-8 h-8 text-sky-500 animate-spin" />
+        <span className="text-sm font-semibold uppercase tracking-wider">Connecting to Laptop Telemetry Stream...</span>
+      </div>
+    );
+  }
+
+  // Active severity alerts highlight
+  const isOnline = laptopDevice.online !== false;
+  let bannerStyle = 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400';
+  let bannerText = 'All systems healthy. Operating temperatures and memory loads are within normal limits.';
+
+  if (!isOnline) {
+    bannerStyle = 'bg-rose-500/10 border-rose-500/20 text-rose-400';
+    const elapsedSeconds = laptopDevice.lastSeen ? Math.round((Date.now() - laptopDevice.lastSeen) / 1000) : 0;
+    bannerText = `LAPTOP OFFLINE. Last seen ${elapsedSeconds > 0 ? `${elapsedSeconds}s ago` : 'just now'}. Displaying last known telemetry data.`;
+  } else if (laptopDevice.status === 'critical') {
+    bannerStyle = 'bg-rose-500/10 border-rose-500/20 text-rose-400';
+    bannerText = `CRITICAL WARNING: System metrics exceeded safe operational thresholds. CPU/GPU cooling requires inspection.`;
+  } else if (laptopDevice.status === 'warning') {
+    bannerStyle = 'bg-amber-500/10 border-amber-500/20 text-amber-400';
+    bannerText = `SYSTEM WARNING: High thermal workload or memory constraints detected. Active cooling fan ramp-up initiated.`;
+  }
 
   return (
-    <div className="w-full h-full p-6 flex flex-col gap-6 overflow-y-auto">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold tracking-tight uppercase">Laptop Devices</h2>
-        <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 text-xs font-bold">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          LIVE TELEMETRY
+    <div className="w-full h-full p-6 flex flex-col gap-6 overflow-y-auto bg-[#020617] scrollbar-thin text-white">
+      {/* 1. HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-extrabold tracking-wider uppercase text-white flex items-center gap-2">
+              <Tv className="w-6 h-6 text-sky-400" />
+              Laptop Digital Twin {laptopDevice.name && `[${laptopDevice.name}]`}
+            </h2>
+            <DeviceStatusBadge status={isOnline ? laptopDevice.status : 'offline'} />
+          </div>
+          <p className="text-xs text-slate-400 mt-1">
+            {isOnline ? 'Real-time visual state sync and predictive analytics for device: ' : 'Showing last cached state for disconnected device: '}
+            <span className="font-mono text-sky-400">{laptopDevice.id}</span>
+          </p>
+        </div>
+
+        {/* Live stream badge */}
+        <div className="flex items-center gap-2">
+          {!isOnline ? (
+            <div className="flex items-center gap-2 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full text-rose-400 text-xs font-bold w-fit">
+              <div className="w-2 h-2 rounded-full bg-rose-500" />
+              LAPTOP OFFLINE
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 text-xs font-bold w-fit">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              {isDemoMode ? 'SIMULATOR ON' : 'LIVE SOCKET TELEMETRY'}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-[600px]">
-        {devices.map(device => (
-          <div key={device.id} className="flex flex-col bg-[#0f172a]/50 rounded-2xl border border-[#1e293b] overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-[#1e293b] flex items-center justify-between bg-black/20">
-              <span className="font-bold text-sm tracking-wide text-white">{device.name}</span>
-              <DeviceStatusBadge status={device.status} />
-            </div>
+      {/* Warning banner alert */}
+      <div className={`p-3 rounded-xl border text-xs font-semibold flex items-center gap-2.5 ${bannerStyle} animate-fadeIn`}>
+        <Info className="w-4 h-4 flex-shrink-0" />
+        <span>{bannerText}</span>
+      </div>
 
             <div className="h-80 relative bg-gradient-to-b from-[#0f172a] to-[#020617] border-b border-[#1e293b]">
-              <Canvas 
-                camera={{ position: [0, 2, 5], fov: 45 }}
-                gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }}
-                onCreated={({ gl }) => {
-                  gl.domElement.addEventListener('webglcontextlost', (e) => e.preventDefault(), false);
-                }}
-              >
-                <ambientLight intensity={1.2} />
-                <directionalLight position={[5, 10, 5]} intensity={1.8} />
+              <Canvas camera={{ position: [0, 2, 5], fov: 45 }}>
+                <ambientLight intensity={0.6} />
+                <spotLight position={[5, 10, 5]} intensity={1.5} />
+                <Environment preset="city" />
                 <Laptop status={device.status} telemetry={device} />
+                <ContactShadows position={[0, -0.1, 0]} opacity={0.6} scale={10} blur={2.5} />
                 <OrbitControls enableZoom={true} enablePan={false} maxPolarAngle={Math.PI / 2} minPolarAngle={0} />
               </Canvas>
               <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/40 rounded text-[10px] text-white/50 backdrop-blur-sm pointer-events-none">
                 Interactive 3D
               </div>
-            </div>
 
-            <div className="p-4 grid grid-cols-2 gap-3 bg-[#0a0f1d] flex-1">
-              <TelemetryCard title="Battery" value={device.battery} unit="%" icon={Battery} color={device.battery < 20 ? 'rose' : 'emerald'} />
-              <TelemetryCard title="Temp" value={device.temperature} unit="°C" icon={Thermometer} color={device.temperature > 40 ? 'warning' : 'blue'} />
-              <TelemetryCard title="CPU" value={device.cpu} unit="%" icon={Cpu} color={device.cpu > 80 ? 'rose' : 'blue'} />
-              <TelemetryCard title="RAM" value={device.ram} unit="%" icon={MemoryStick} color={device.ram > 80 ? 'amber' : 'slate'} />
-              <TelemetryCard title="Network" value={device.network} icon={Wifi} color="slate" />
+              {/* Inspect internals mode toggle */}
+              <button
+                onClick={() => setInspectInternals(!inspectInternals)}
+                className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 ${
+                  inspectInternals 
+                    ? 'bg-sky-500/20 border-sky-400 text-sky-400 shadow-md shadow-sky-500/10' 
+                    : 'bg-slate-900/60 border-[#1e293b] text-slate-400 hover:text-white'
+                }`}
+              >
+                {inspectInternals ? 'HIDE INTERNALS' : 'INSPECT INTERNALS'}
+              </button>
             </div>
           </div>
-        ))}
+
+          {/* Three.js R3F Canvas container */}
+          <div className="flex-1 relative bg-gradient-to-b from-[#0f172a] to-[#020617]">
+            <Canvas camera={{ position: [0, 2.2, 4.5], fov: 42 }}>
+              <ambientLight intensity={0.6} />
+              <spotLight position={[6, 12, 6]} intensity={1.8} angle={0.3} penumbra={1} castShadow />
+              <pointLight position={[-4, 4, -4]} intensity={0.8} />
+              <Environment preset="city" />
+              
+              <Laptop 
+                status={laptopDevice.status} 
+                telemetry={laptopDevice} 
+                selectedComponent={selectedComponent}
+                onSelectComponent={setSelectedComponent}
+                inspectInternals={inspectInternals}
+                lidAngle={lidAngle}
+              />
+              
+              <ContactShadows position={[0, -0.6, 0]} opacity={0.6} scale={10} blur={2.2} far={2.0} />
+              <OrbitControls 
+                enableZoom={true} 
+                enablePan={false} 
+                maxPolarAngle={Math.PI / 2.1} 
+                minPolarAngle={Math.PI / 4.5} 
+              />
+            </Canvas>
+
+            {/* Quick Helper Labels Overlay */}
+            <div className="absolute bottom-3 left-3 px-3 py-1.5 bg-black/60 rounded-xl text-[10px] text-white/50 backdrop-blur-sm pointer-events-none border border-[#1e293b]/30">
+              Drag to Orbit • Scroll to Zoom
+            </div>
+
+            {selectedComponent && (
+              <div className="absolute top-3 left-3 px-3 py-1.5 bg-sky-500/15 border border-sky-500/30 rounded-xl text-[10px] text-sky-400 backdrop-blur-sm flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping" />
+                Highlighting: <span className="font-bold uppercase">{selectedComponent}</span>
+                <button 
+                  onClick={() => setSelectedComponent(null)}
+                  className="ml-2 font-black text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT PANELS COLUMN: HEALTH, INSPECTION & ALERTS (lg:span-5) */}
+        <div className="lg:col-span-5 flex flex-col gap-4">
+          <div className="flex-1">
+            <LaptopHealthPanel telemetry={laptopDevice} />
+          </div>
+          <div className="flex-1">
+            <LaptopComponentInspection 
+              telemetry={laptopDevice} 
+              selectedComponent={selectedComponent} 
+              onSelectComponent={setSelectedComponent} 
+            />
+          </div>
+          <div className="h-60">
+            <LaptopAlerts telemetry={laptopDevice} />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. BOTTOM PANEL: TELEMETRY & HISTORICAL TRENDS */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        {/* Left Span: Telemetry Stats */}
+        <div className="xl:col-span-6">
+          <LaptopTelemetryPanel telemetry={laptopDevice} />
+        </div>
+
+        {/* Right Span: Real-Time Recharts line history */}
+        <div className="xl:col-span-6 flex flex-col bg-[#0a0f1d]/60 border border-[#1e293b] rounded-2xl p-4 backdrop-blur-md min-h-[300px]">
+          <h3 className="text-sm font-bold tracking-wider text-slate-300 uppercase mb-3 flex items-center gap-2">
+            <Activity className="w-4 h-4 text-sky-400" />
+            Live Telemetry Trends
+          </h3>
+
+          <div className="flex-1 w-full min-h-[220px] bg-black/10 rounded-xl p-2 border border-[#1e293b]/30">
+            {history.length < 2 ? (
+              <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 text-xs">
+                <Activity className="w-6 h-6 mb-1 text-slate-600 animate-pulse" />
+                Gathering telemetry timeline...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={history} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.3} />
+                  <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 9 }} />
+                  <YAxis domain={[0, 100]} stroke="#64748b" tick={{ fontSize: 9 }} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', fontSize: '10px' }}
+                    labelClassName="text-slate-400 font-bold"
+                  />
+                  <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="cpu" 
+                    name="CPU (%)" 
+                    stroke="#38bdf8" 
+                    strokeWidth={2} 
+                    dot={false} 
+                    activeDot={{ r: 4 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="gpu" 
+                    name="GPU (%)" 
+                    stroke="#818cf8" 
+                    strokeWidth={2} 
+                    dot={false} 
+                    activeDot={{ r: 4 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="cpuTemp" 
+                    name="CPU Temp (°C)" 
+                    stroke="#ef4444" 
+                    strokeWidth={2} 
+                    dot={false} 
+                    activeDot={{ r: 4 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="ram" 
+                    name="RAM (%)" 
+                    stroke="#a855f7" 
+                    strokeWidth={2} 
+                    dot={false} 
+                    activeDot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
